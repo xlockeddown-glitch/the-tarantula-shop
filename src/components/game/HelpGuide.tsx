@@ -3,7 +3,7 @@ import { useState } from "react";
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: "The table",
-    body: "Window is live stock guests can buy. Rack is everything else — tap a chip to list it. Wall portraits come later. First morning: list, Open, trade, Tend, Sleep.",
+    body: "Window is live stock guests can buy. Rack is everything else — tap a chip to list it. Pin felt portraits from the Binder when you unlock them — they hang behind the shop, not for sale. First morning: list, Open, trade, Tend, Sleep.",
   },
   {
     title: "The wall",
@@ -31,7 +31,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Elizabeth",
-    body: "Hire after extra glass and two hatches (35 chips). Fill the window, then tap Elizabeth has the till. She sells listed stock, skips Aggressive unless the guest is a keeper, tends jars, and leaves a slip in Notes. That locks Open for the day and unlocks the Trail.",
+    body: "Hire after extra glass and two hatches (35 chips). Fill the window, then tap Elizabeth has the till. She sells listed stock, skips defensive / old-world stock unless the guest is a keeper, tends jars, and leaves a slip in Notes. That locks Open for the day and unlocks the Trail.",
   },
   {
     title: "Felt trail",
@@ -43,11 +43,11 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Truck",
-    body: "Buy slings and juvs the shop has unlocked. Feeder pack is always there. Feeder crate (28) shows after the second address. Don't blow your chips on adults you can't house.",
+    body: "Buy slings and juvs the shop has unlocked. Feeder pack is always there. Feeder crate (28 for 8 chips) shows once you have the Back counter. Don't blow your chips on adults you can't house.",
   },
   {
     title: "Upgrades",
-    body: "Overnight glass: 6 panes. Back counter: 10 panes + Elizabeth. Second address: 18 panes and warehouse racks (72 / 36 / 18). Guest line grows slower (3 → 7).",
+    body: "Overnight glass: 6 panes. Back counter: 10 panes. (Elizabeth can hire after Overnight glass + two hatches.) Second address: 18 panes and warehouse racks (72 slings / 36 juveniles / 18 adults). Guest line grows slower (3 → 7).",
   },
 ];
 

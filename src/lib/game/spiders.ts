@@ -28,9 +28,9 @@ export const SPIDER_SPECIES: SpiderSpecies[] = [
   { id: "grammostola-pulchripes", latin: "Grammostola pulchripes", common: "Chaco Golden Knee", origin: "Paraguay, Argentina", kind: "terrestrial", life: "terrestrial", rarity: "common", ow: false, beginner: true, humidity: "dry", temper: "docile", price: 22, note: "Deep substrate, open water dish, hide." },
   { id: "tliltocatl-albopilosus", latin: "Tliltocatl albopilosus", common: "Curly Hair", origin: "Honduras, Nicaragua, Costa Rica", kind: "terrestrial", life: "terrestrial", rarity: "common", ow: false, beginner: true, humidity: "dry", temper: "docile", price: 18, note: "Substrate, open water dish, hide." },
   { id: "poecilotheria-rufilata", latin: "Poecilotheria rufilata", common: "Red Slate Ornamental", origin: "India", kind: "arboreal", life: "arboreal", rarity: "rare", ow: true, beginner: false, humidity: "crossvent", temper: "defensive", price: 72, note: "Humidity, open water dish, cross ventilation." },
-  { id: "caribena-versicolor", latin: "Caribena versicolor", common: "Martinique", origin: "Caribbean, Martinique, Lesser Antilles", kind: "arboreal", life: "arboreal", rarity: "uncommon", ow: false, beginner: true, humidity: "crossvent", temper: "skittish", price: 36, note: "Humidity, open water dish, cross ventilation, hide." },
+  { id: "caribena-versicolor", latin: "Caribena versicolor", common: "Antilles Pinktoe", origin: "Caribbean, Martinique, Lesser Antilles", kind: "arboreal", life: "arboreal", rarity: "uncommon", ow: false, beginner: true, humidity: "crossvent", temper: "skittish", price: 36, note: "Humidity, open water dish, cross ventilation, hide." },
   { id: "nhandu-tripepii", latin: "Nhandu tripepii", common: "Brazilian Giant Blonde", origin: "Brazil", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: false, humidity: "dry", temper: "skittish", price: 34, note: "Substrate, open water dish, hide." },
-  { id: "pamphobeteus-fortis", latin: "Pamphobeteus fortis", common: "Columbia Giant Copperhead", origin: "Colombia, Venezuela, Panama", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: false, humidity: "slight", temper: "skittish", price: 38, note: "Substrate, open water dish, hide." },
+  { id: "pamphobeteus-fortis", latin: "Pamphobeteus fortis", common: "Colombian Giant Copperhead", origin: "Colombia, Venezuela, Panama", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: false, humidity: "slight", temper: "skittish", price: 38, note: "Substrate, open water dish, hide." },
   { id: "phormictopus-dominican-purple", latin: "Phormictopus sp. \"Dominican Purple\"", common: "Dominican Purple Birdeater", origin: "Dominican Republic", kind: "terrestrial", life: "terrestrial", rarity: "rare", ow: false, beginner: false, humidity: "dry", temper: "skittish", price: 52, note: "Substrate, open water dish, hide. Trade name, not a described species." },
   { id: "heteroscodra-maculata", latin: "Heteroscodra maculata", common: "Togo Starburst Baboon", origin: "Africa", kind: "arboreal", life: "arboreal", rarity: "rare", ow: true, beginner: false, humidity: "crossvent", temper: "defensive", price: 64, note: "Humidity, open water dish, cross ventilation." },
   { id: "chromatopelma-cyaneopubescens", latin: "Chromatopelma cyaneopubescens", common: "Green Bottle Blue", origin: "Venezuela", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: true, humidity: "arid", temper: "docile", price: 40, note: "Open water dish, cross ventilation, dry." },
@@ -38,7 +38,7 @@ export const SPIDER_SPECIES: SpiderSpecies[] = [
   { id: "thrixopelma-cyaneolum", latin: "Thrixopelma cyaneolum", common: "Cobalt Red Rump", origin: "Peru", kind: "terrestrial", life: "terrestrial", rarity: "rare", ow: false, beginner: false, humidity: "arid", temper: "skittish", price: 56, note: "Substrate, open water dish, hide, dry." },
   { id: "brachypelma-hamorii", latin: "Brachypelma hamorii", common: "Mexican Red Knee", origin: "Mexico", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: true, humidity: "arid", temper: "docile", price: 44, note: "Substrate, open water dish, hide." },
   { id: "grammostola-quirogai", latin: "Grammostola quirogai", common: "Uruguayan Black Beauty", origin: "Uruguay", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: true, humidity: "dry", temper: "docile", price: 28, note: "Deep substrate, open water dish, hide." },
-  { id: "megaphobema-robustum", latin: "Megaphobema robustum", common: "Columbian Red Leg", origin: "Colombia", kind: "terrestrial", life: "fossorial", rarity: "rare", ow: false, beginner: false, humidity: "slight", temper: "skittish", price: 58, note: "Deep substrate, open water dish, hide." },
+  { id: "megaphobema-robustum", latin: "Megaphobema robustum", common: "Colombian Red Leg", origin: "Colombia", kind: "terrestrial", life: "fossorial", rarity: "rare", ow: false, beginner: false, humidity: "slight", temper: "skittish", price: 58, note: "Deep substrate, open water dish, hide." },
   { id: "psalmopoeus-cambridgei", latin: "Psalmopoeus cambridgei", common: "Trinidad Chevron", origin: "Trinidad", kind: "arboreal", life: "arboreal", rarity: "uncommon", ow: false, beginner: false, humidity: "crossvent", temper: "skittish", price: 34, note: "Humidity, open water dish, cross ventilation." },
   { id: "psalmopoeus-reduncus", latin: "Psalmopoeus reduncus", common: "Costa Rican Orange Mouth", origin: "Costa Rica, Panama, Nicaragua", kind: "arboreal", life: "arboreal", rarity: "uncommon", ow: false, beginner: false, humidity: "crossvent", temper: "skittish", price: 32, note: "Humidity, open water dish, cross ventilation." },
   { id: "sericopelma-santa-catalina", latin: "Sericopelma sp. \"Santa Catalina\"", common: "Santa Catalina", origin: "Panama", kind: "terrestrial", life: "terrestrial", rarity: "uncommon", ow: false, beginner: false, humidity: "dry", temper: "skittish", price: 36, note: "Substrate, open water dish, hide. Locale trade name." },
@@ -61,6 +61,7 @@ export const SPIDER_SPECIES: SpiderSpecies[] = [
 
 export const CLUTCH_EGGS: Record<string, number> = {
   "ceratogyrus-darlingi": 80,
+  "avicularia-avicularia": 120,
   "avicularia-purpurea": 100,
   "grammostola-pulchripes": 300,
   "tliltocatl-albopilosus": 600,
@@ -100,7 +101,7 @@ export const GBB_ID = "chromatopelma-cyaneopubescens";
 export const HOUSE_AVIC = "avicularia-purpurea";
 export const STOCK_CAP = { sling: 25, juvenile: 10, adult: 5 } as const;
 export const TANK_COST = { sling: 4, juvenile: 8, adult: 16, breed: 22 } as const;
-export const FEEDER_PACK = { qty: 6, cost: 2 } as const;
+export const FEEDER_PACK = { qty: 8, cost: 2 } as const;
 export const FEEDER_CRATE = { qty: 28, cost: 8 } as const;
 export const RENT_PER_NIGHT = 4;
 
@@ -151,7 +152,7 @@ export const PAIR_NICK: Record<string, string> = {
   "thrixopelma-cyaneolum": "Cobalt Rump",
   "brachypelma-hamorii": "Mexican Redknee",
   "grammostola-quirogai": "Black Beauty",
-  "megaphobema-robustum": "Colombian Redleg",
+  "megaphobema-robustum": "Colombian Red Leg",
   "psalmopoeus-cambridgei": "Trinidad Chevron",
   "psalmopoeus-reduncus": "Orange Mouth",
   "sericopelma-santa-catalina": "Santa Catalina",
@@ -194,7 +195,7 @@ export const HUMIDITY_LABEL: Record<SpiderHumidity, string> = {
 export const TEMPER_LABEL: Record<SpiderTemper, string> = {
   docile: "Mild",
   skittish: "Timid",
-  defensive: "Aggressive",
+  defensive: "Defensive",
 };
 
 export function lifeType(s: SpiderSpecies): "Arboreal" | "Terrestrial" | "Fossorial" {

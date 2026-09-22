@@ -85,12 +85,13 @@ function sexStarterPair(colony: OwnedSpider[]): OwnedSpider[] {
   });
 }
 
-function persist(s: GameState) {
+function persist(s: GameState): boolean {
   try {
     const { toasts: _t, ...rest } = s;
     localStorage.setItem(SAVE, JSON.stringify(rest));
+    return true;
   } catch {
-    /* private mode */
+    return false;
   }
 }
 
@@ -526,7 +527,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   careRack: () => {
-    get().toast("Walk up to a tank. E on the jar.");
+    get().toast("Tap a jar on the table, or hit Tend all before Sleep.");
   },
 
   tend: (id, kind) => {
@@ -1053,7 +1054,7 @@ export const useGame = create<GameState>((set, get) => ({
   expandShop: () => {
     const s = get();
     if (s.shopTier >= 3) {
-      get().toast("Loft is as wide as the lease.");
+      get().toast("That's as wide as the lease goes.");
       return;
     }
     const miss = missingUpgrade(s.stats, s.cash, s.shopTier);
@@ -1098,9 +1099,9 @@ export const useGame = create<GameState>((set, get) => ({
     });
     get().toast("Elizabeth hangs her coat. Fill the window, then she can have the till.");
     try {
-      persist({ ...get() });
+      if (!persist({ ...get() })) throw new Error("save");
     } catch {
-      get().toast("Saved in memory. Binder will catch up next refresh.");
+      get().toast("Couldn't save. Storage is blocked or full — try again.");
     }
   },
 
@@ -1169,7 +1170,7 @@ export const useGame = create<GameState>((set, get) => ({
         title: "Elizabeth's slip",
         body: [
           sold ? `sold ${sold}` : "sold none",
-          refused ? `wouldn't pass ${refused} hot ones` : null,
+          refused ? `skipped ${refused} defensive` : null,
           care.tended ? `tended ${care.tended}` : "jars current",
           care.hungry ? `${care.hungry} still hungry` : null,
           signNote || null,
@@ -1201,7 +1202,7 @@ export const useGame = create<GameState>((set, get) => ({
     });
     const bits = [
       sold ? `sold ${sold}` : "till quiet",
-      refused ? `passed ${refused} aggressive` : null,
+      refused ? `skipped ${refused} defensive` : null,
       care.tended ? `tended ${care.tended}` : null,
       care.hungry ? `${care.hungry} hungry (bin empty)` : null,
     ].filter(Boolean);

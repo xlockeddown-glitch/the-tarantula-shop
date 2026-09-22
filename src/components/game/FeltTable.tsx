@@ -156,7 +156,7 @@ function CoachCard({ beat, onSkip }: { beat: number; onSkip: () => void }) {
     { kicker: "1 / 4", title: "Window vs rack", body: "The window is already stocked. Guests only buy those. Tap a rack chip to list another, then Open shop." },
     { kicker: "2 / 4", title: "Guests", body: "They only buy what's in the window. Trade or Pass. Close when you're done." },
     { kicker: "3 / 4", title: "Night", body: "Tend all (feed and water), then Sleep in the top bar." },
-    { kicker: "4 / 4", title: "That's a day", body: "Breed when you have an adult pair. Truck, Binder, and Notes are in the bottom bar. ? is everything else." },
+    { kicker: "4 / 4", title: "That's a day", body: "When you've got an adult pair on the rack, Introduce. Truck, Binder, and Notes sit in the bottom bar. The ? has the rest." },
   ][Math.min(3, Math.max(0, beat))]!;
   return (
     <div className="mb-3 flex items-start justify-between gap-3 rounded-[14px] border-2 border-[#c47858] bg-[#efe6d8] px-3 py-2.5">

@@ -207,15 +207,15 @@ export function forageLabel(speciesId: string) {
 export function cardBlurb(card: TrailCard, from: number) {
   const hop = hopPawn(from, card);
   const dest = PATH[hop.to]!;
-  if (card.kind === "silk") return "Sticky silk. You stay put — walk's over for today.";
+  if (card.kind === "silk") return "Sticky silk. Stuck — that's the walk for today.";
   if (card.kind === "print") {
     return hop.to === from
-      ? "Pink print — hunt a wild species right here."
-      : "Pink print — hop to the rare square and hunt a wild species.";
+      ? "Pink print — hunt the rare square right here."
+      : "Pink print — hop to the rare square.";
   }
   if (card.kind === "picture") {
     if (hop.to === from) return `Already at or past ${card.landmark}. Stay put and search here.`;
-    return `Picture card — jump to ${card.landmark}.`;
+    return `Picture card — hop straight to ${card.landmark}.`;
   }
   if (card.double) return `Double ${card.label.replace(/^Double /i, "").toLowerCase()} — skip ahead to ${spaceLabel(dest)}.`;
   if (hop.to === from) return `${card.label} — no more of that color ahead. Search here.`;

@@ -11,7 +11,7 @@ export const TIER_UNLOCKS: { profit: number; ids: string[] }[] = [
   { profit: 0, ids: [...STARTER_IDS] },
   {
     profit: 70,
-    ids: ["brachypelma-hamorii", "avicularia-purpurea", "grammostola-quirogai", "caribena-versicolor", "avicularia-geroldi"],
+    ids: ["brachypelma-hamorii", "avicularia-purpurea", "grammostola-quirogai", "caribena-versicolor", "avicularia-geroldi", "phrixotrichus-vulpinus"],
   },
   {
     profit: 160,
@@ -165,21 +165,21 @@ export const LOFT_UPGRADES: LoftUpgrade[] = [
     label: "Overnight glass",
     cost: 40,
     need: { sales: 1, cleanNights: 1, hatches: 2, goodBuilds: 0 },
-    blurb: "Second good breed. Wake up to six window panes.",
+    blurb: "After two good hatches (and a sale), wake up to six window panes.",
   },
   {
     from: 1,
     label: "Back counter",
     cost: 90,
     need: { sales: 8, cleanNights: 5, hatches: 2, goodBuilds: 0 },
-    blurb: "Ten panes. Elizabeth at the till. Then you can leave the loft.",
+    blurb: "Ten panes and a proper back counter. Feeder crates show up here.",
   },
   {
     from: 2,
     label: "Second address",
     cost: 320,
     need: { sales: 24, cleanNights: 14, hatches: 6, goodBuilds: 0 },
-    blurb: "Eighteen panes and warehouse racks (72 / 36 / 18). Still one line of guests.",
+    blurb: "A second address: eighteen panes, warehouse racks (72 slings / 36 juveniles / 18 adults). Guests still come as a short line.",
   },
 ];
 

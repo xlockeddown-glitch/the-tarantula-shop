@@ -35,6 +35,7 @@ export const SPECIES_PAINT: Record<string, SpeciesPaint> = {
   "grammostola-quirogai": { carapace: "#6a5a50", abdomen: "#4a3a34", legs: "#5a4a44", accent: "#c4a090", toes: "#8a7068" },
   "megaphobema-robustum": { carapace: "#4a2a20", abdomen: "#3a1c14", legs: "#5a3024", accent: "#c43828", toes: "#8a4030" },
   "psalmopoeus-cambridgei": { carapace: "#3a4a30", abdomen: "#2a3420", legs: "#4a5a38", accent: "#c4b060", toes: "#8a8050" },
+  "psalmopoeus-reduncus": { carapace: "#3a4a28", abdomen: "#2a3818", legs: "#4a5830", accent: "#8a6a32", toes: "#c4a060" },
   "psalmopoeus-irminia": { carapace: "#2a2218", abdomen: "#1c1610", legs: "#3a2a1c", accent: "#e8a028", toes: "#c47020" },
   "tapinauchenius-cupreus": { carapace: "#6a3a20", abdomen: "#4a2814", legs: "#7a4a28", accent: "#c46830", toes: "#e89068" },
   "aphonopelma-seemanni": { carapace: "#4a3428", abdomen: "#3a2418", legs: "#5a4030", accent: "#e8e0d4", toes: "#f4ece4" },

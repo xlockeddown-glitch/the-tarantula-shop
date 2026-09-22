@@ -121,7 +121,7 @@ function EvictedScreen() {
     <main className="flex min-h-dvh flex-col items-center justify-center bg-[#7a8480] px-6 text-center">
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#6a6560]">Day {day}</p>
       <h1 className="font-display mt-3 text-4xl">Locks changed</h1>
-      <p className="mt-3 max-w-md text-[#5a5652]">The chips ran out. Start another table.</p>
+      <p className="mt-3 max-w-md text-[#5a5652]">Till's empty and the locks changed. Start another table when you're ready.</p>
       <Button className="mt-8 rounded-full" onClick={reset}>Start another table</Button>
     </main>
   );
@@ -390,7 +390,7 @@ function LoftView() {
           );
         })}
       </div>
-      <p className="text-xs text-[#6a6560]">Wall {usedWall(wall)}/{wallUnits(shopTier)} · bay {BAY_UNITS.adult} adult / {expandCost(shopTier)} next glass fallback</p>
+      <p className="text-xs text-[#6a6560]">Bay wall {usedWall(wall)}/{wallUnits(shopTier)} · adult bay costs {BAY_UNITS.adult} · next glass {expandCost(shopTier)}</p>
       <div className="flex gap-2">
         <Button size="sm" variant="ghost" className="rounded-full" onClick={() => addBay("sling")}>Add sling bay</Button>
         <Button size="sm" variant="ghost" className="rounded-full" onClick={() => addBay("juvenile")}>Add juv bay</Button>
