@@ -59,7 +59,7 @@ export function HelpGuide() {
         type="button"
         aria-label="Help"
         onClick={() => setOpen(true)}
-        className="fixed right-4 bottom-[4.5rem] z-40 flex size-11 items-center justify-center rounded-full border-2 border-[#5aa8a0] bg-[#d8dce0] text-lg font-display text-[#3a3a3c] shadow-[0_6px_0_#4a524e] lg:bottom-4"
+        className="fixed right-4 bottom-[4.5rem] z-40 flex size-11 items-center justify-center rounded-full border-2 border-[#5aa8a0] bg-[#d8dce0] text-lg font-display text-[#3a3a3c] shadow-[0_6px_0_#4a524e]"
       >
         ?
       </button>

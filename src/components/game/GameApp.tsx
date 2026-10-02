@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Bug, Home, ScrollText, Store, Truck, Utensils } from "lucide-react";
+import { BookOpen, Bug, Home, Store, Truck, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeltTable } from "./FeltTable";
 import { FeltBinder } from "./FeltBinder";
@@ -178,7 +178,7 @@ function Tabletop() {
   return (
     <div className="min-h-dvh bg-[#7a8480] text-[#3a3a3c]">
       <HUD />
-      <div className="mx-auto max-w-6xl overflow-visible px-3 pb-28 pt-3 lg:pb-8">
+      <div className="mx-auto max-w-6xl overflow-visible px-3 pb-28 pt-3">
         <FeltTable />
         {desk ? (
           <div className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-[#4a524e]/75 px-3 pt-16 pb-24">
@@ -218,6 +218,7 @@ function HUD() {
   const feeders = useGame((s) => s.feeders);
   const shopMode = useGame((s) => s.shopMode);
   const openedDay = useGame((s) => s.openedDay ?? 0);
+  const enterField = useGame((s) => s.enterField);
   const openedBy = useGame((s) => s.openedBy);
   const elizabethHired = useGame((s) => s.elizabethHired);
   const elizabethCover = useGame((s) => s.elizabethCover);
@@ -263,6 +264,9 @@ function HUD() {
           )}
           {shopMode !== "open" ? <Button size="sm" variant="paper" className="rounded-full" onClick={endDay}>Sleep</Button> : null}
           {dueN && shopMode !== "open" ? <Button size="sm" variant="secondary" className="rounded-full" onClick={careAll}>Tend all</Button> : null}
+          {elizabethHired && openedBy === "elizabeth" && openedDay === day ? (
+            <Button size="sm" variant="secondary" className="rounded-full" onClick={enterField}>Trail</Button>
+          ) : null}
           <Button size="sm" variant="ghost" className="rounded-full" onClick={reset}>New table</Button>
         </div>
       </div>
@@ -271,19 +275,18 @@ function HUD() {
 }
 
 const NAV: { id: GameView; label: string; icon: typeof Store }[] = [
-  { id: "world", label: "Store", icon: Home },
+  { id: "world", label: "Table", icon: Home },
   { id: "loft", label: "Racks", icon: Store },
   { id: "wholesale", label: "Truck", icon: Truck },
   { id: "binder", label: "Binder", icon: BookOpen },
   { id: "notes", label: "Notes", icon: BookOpen },
-  { id: "ledger", label: "Ledger", icon: ScrollText },
 ];
 
 function Nav() {
   const view = useGame((s) => s.view);
   const setView = useGame((s) => s.setView);
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#3a3a3c]/20 bg-[#6e7874]/95 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[#3a3a3c]/20 bg-[#6e7874]/95 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex max-w-lg justify-between">
         {NAV.map((n) => {
           const Icon = n.icon;

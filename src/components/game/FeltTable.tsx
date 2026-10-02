@@ -47,14 +47,14 @@ function ChipStack({ spiders, onTop }: { spiders: OwnedSpider[]; onTop: (id: str
   );
 }
 
-function CardFace({ spider, small }: { spider: OwnedSpider; small?: boolean }) {
+function CardFace({ spider, small, fill }: { spider: OwnedSpider; small?: boolean; fill?: boolean }) {
   const spec = spiderById(spider.speciesId);
   const day = useGame((s) => s.day);
   if (!spec) return null;
   const due = careDue(spider, spec, day).length > 0;
   return (
-    <article className={`overflow-hidden rounded-[12px] border-2 border-[#efe6d8] bg-[#efe6d8] shadow-[0_8px_0_#8a8680] ${small ? "w-[88px]" : "w-[128px]"}`}>
-      <img src={portraitFor(spec, spider.stage)} alt="" className={small ? "h-16 w-full object-contain" : "h-24 w-full object-contain"} />
+    <article className={`overflow-hidden rounded-[12px] border-2 border-[#efe6d8] bg-[#efe6d8] shadow-[0_8px_0_#8a8680] ${small ? "w-[88px]" : fill ? "w-full" : "w-[128px]"}`}>
+      <img src={portraitFor(spec, spider.stage)} alt="" className={small ? "h-16 w-full object-contain" : "h-28 w-full object-contain sm:h-32"} />
       <div className="bg-[#efe6d8] px-1.5 py-1">
         <p className="truncate text-[11px] font-medium leading-tight text-[#3a3a3c]">{spec.common}</p>
         <p className="font-mono text-[9px] uppercase tracking-wide text-[#6a6560]">
@@ -89,9 +89,9 @@ function WallFace({ pin, onUnpin }: { pin: DisplayPin; onUnpin: () => void }) {
   );
 }
 
-function EmptySlot({ label }: { label: string }) {
+function EmptySlot({ label, large }: { label: string; large?: boolean }) {
   return (
-    <div className="relative h-[118px] w-[88px] overflow-hidden rounded-[12px] border-2 border-[#efe6d8] shadow-[0_6px_0_#8a8680]">
+    <div className={`relative overflow-hidden rounded-[12px] border-2 border-[#efe6d8] shadow-[0_6px_0_#8a8680] ${large ? "h-40 w-full sm:h-44" : "h-[118px] w-[88px]"}`}>
       <img src="/game/felt/slot-empty.webp" alt="" className="size-full object-cover" />
       <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[8px] uppercase text-[#3a3a3c]">{label}</span>
     </div>
@@ -189,18 +189,12 @@ export function FeltTable() {
   const drawTrailCard = useGame((s) => s.drawTrailCard);
   const resolveTrailCard = useGame((s) => s.resolveTrailCard);
   const dismissTrailFind = useGame((s) => s.dismissTrailFind);
-  const careAll = useGame((s) => s.careAll);
   const displayPins = useGame((s) => s.displayPins) ?? [];
   const unpinDisplay = useGame((s) => s.unpinDisplay);
-  const elizabethHired = useGame((s) => s.elizabethHired);
-  const elizabethCover = useGame((s) => s.elizabethCover);
   const listSpider = useGame((s) => s.listSpider);
   const startBreed = useGame((s) => s.startBreed);
   const serve = useGame((s) => s.serveCustomer);
   const refuse = useGame((s) => s.refuseCustomer);
-  const openShop = useGame((s) => s.openShop);
-  const closeShop = useGame((s) => s.closeShop);
-  const enterField = useGame((s) => s.enterField);
   const leaveField = useGame((s) => s.leaveField);
 
   const windows = windowSlots(shopTier);
@@ -334,49 +328,9 @@ export function FeltTable() {
       style={{ backgroundImage: "url(/game/felt/mat.webp)", backgroundSize: "cover" }}
     >
       <div className="rounded-[16px] bg-[#c8c4be] p-4 ring-1 ring-[#3a3a3c]/10">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#3a3a3c]/70">The Tarantula Shop · window / rack</p>
-          <div className="flex flex-wrap gap-2">
-            {shopMode === "open" ? (
-              <Button size="sm" className="rounded-full bg-[#e8a0b8] text-[#3a3a3c] hover:bg-[#e090b0]" onClick={closeShop}>
-                Close
-              </Button>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  className="rounded-full bg-[#c47858] text-[#efe6d8] hover:bg-[#b46848]"
-                  disabled={closedForDay}
-                  onClick={openShop}
-                >
-                  {closedForDay ? (sheHasTill ? "She ran today" : "Closed today") : "Open shop"}
-                </Button>
-                {elizabethHired ? (
-                  <Button
-                    size="sm"
-                    className="rounded-full bg-[#5aa8a0] text-[#efe6d8] hover:bg-[#4a9890]"
-                    disabled={closedForDay}
-                    onClick={elizabethCover}
-                  >
-                    {closedForDay ? "Till's done" : "Elizabeth has the till"}
-                  </Button>
-                ) : null}
-              </>
-            )}
-            <Button size="sm" variant="paper" className="rounded-full" onClick={careAll}>
-              Tend all
-            </Button>
-            {elizabethHired ? (
-              <Button size="sm" variant="secondary" className="rounded-full" onClick={enterField}>
-                Trail
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
         {sheHasTill ? (
           <p className="mb-3 rounded-[12px] bg-[#efe6d8]/80 px-3 py-2 text-sm text-[#3a3a3c]">
-            Elizabeth has the till. Trail is yours until you Sleep.
+            Elizabeth has the till. Trail is in the top bar until you Sleep.
           </p>
         ) : null}
 
@@ -386,12 +340,14 @@ export function FeltTable() {
           <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">
             Window · listed {listedSpiders.length}/{windows}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {groupStacks(listedSpiders).map((stack) => (
-              <ChipStack key={stackKey(stack[0]!)} spiders={stack} onTop={(id) => listSpider(id, false)} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {listedSpiders.map((sp) => (
+              <button key={sp.id} type="button" className="text-left" onClick={() => listSpider(sp.id, false)}>
+                <CardFace spider={sp} fill />
+              </button>
             ))}
             {Array.from({ length: Math.max(0, windows - listedSpiders.length) }).map((_, i) => (
-              <EmptySlot key={`win-empty-${i}`} label={`Window`} />
+              <EmptySlot key={`win-empty-${i}`} label="Window" large />
             ))}
           </div>
         </section>
