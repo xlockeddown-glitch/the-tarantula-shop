@@ -1,6 +1,6 @@
 {
   "name": "the-tarantula-shop",
-  "version": "0.1.02",
+  "version": "0.1.03",
   "private": true,
   "sideEffects": false,
   "type": "module",
