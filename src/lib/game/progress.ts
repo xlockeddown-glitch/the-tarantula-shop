@@ -146,6 +146,11 @@ export type LoftStats = {
   cleanNights: number;
   losses: number;
   goodBuilds: number;
+  /** Counters for goals. Optional so older saves load. */
+  pushSales?: number;
+  handFeeds?: number;
+  ordersFilled?: number;
+  truckBuys?: number;
 };
 
 export function emptyStats(): LoftStats {

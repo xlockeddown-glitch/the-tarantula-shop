@@ -34,6 +34,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed.",
   },
   {
+    title: "Goals",
+    body: "The strip under the header always shows one goal, with a chip reward. Tap it to jump to where you'd do it. The first few walk you through selling, hand-feeding, haggling and requests. After that they follow what the shop needs, like restocking when the racks run low. Swap once a day if you don't like one. Missing a goal costs nothing.",
+  },
+  {
     title: "Requests",
     body: "The Requests board on the table lists people who want an exact animal (stage and sex) and pay about a third over fair. Buy or grow one before the days run out, then Ship. Nothing is lost if a request lapses. A guest who wants something you don't have can leave their number: they come back in a few days and offer a little more each visit, up to three times.",
   },

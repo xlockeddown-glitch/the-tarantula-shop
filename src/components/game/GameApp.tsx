@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FeltTable } from "./FeltTable";
 import { FeltBinder } from "./FeltBinder";
 import { HelpGuide } from "./HelpGuide";
+import { GoalStrip } from "./GoalStrip";
 import { RevealDeck } from "./RevealDeck";
 import { TankView } from "./TankView";
 import { SexMark } from "./SexMark";
@@ -469,6 +470,7 @@ function HUD() {
             {primary.label}
           </Button>
         </div>
+        <GoalStrip />
       </div>
     </header>
   );
