@@ -249,6 +249,8 @@ export type OwnedSpider = {
   breedRestUntil?: number;
   spentUntil?: number;
   wild?: boolean;
+  /** Day it woke up freshly molted. Fangs are soft: no food that day. */
+  moltDay?: number;
 };
 
 export type Clutch = {

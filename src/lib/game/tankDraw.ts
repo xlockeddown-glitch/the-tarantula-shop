@@ -9,7 +9,9 @@ import {
   cricketScale,
   hipLocal,
   kneeTopDown,
+  makeWorld,
   mulberry32,
+  posedSpider,
   segLengths,
   toWorld,
   type Cricket,
@@ -31,6 +33,8 @@ export type TankLook = {
   grime: number;
   premolt: boolean;
   seed: number;
+  /** Draw the shed skin lying in the tank (molt day). */
+  exuvia?: boolean;
 };
 
 function hexToRgb(hex: string) {
@@ -398,7 +402,7 @@ function fuzzFor(seed: number): Fuzz {
   return out;
 }
 
-function drawSpider(g: CanvasRenderingContext2D, w: World, look: TankLook) {
+export function drawSpider(g: CanvasRenderingContext2D, w: World, look: TankLook) {
   const sp: Spider = w.spider;
   const s = sp.scale;
   const p = look.paint;
@@ -675,6 +679,7 @@ export function drawTank(g: CanvasRenderingContext2D, w: World, look: TankLook, 
   g.setTransform(k, 0, 0, k, 0, 0);
   if (L.dish) drawDish(g, L.dish, look.water, w.time);
   drawHome(g, L);
+  if (look.exuvia) drawExuvia(g, w, look);
   const eating = w.spider.mode === "eat";
   const cs = cricketScale(w.spider.scale);
   if (w.cricket && w.cricket.alive && !eating) drawCricket(g, w.cricket, false, cs);
@@ -702,4 +707,146 @@ export function toTank(
 ): Vec {
   const k = layout.w / rect.width;
   return { x: (clientX - rect.left) * k, y: (clientY - rect.top) * k };
+}
+
+/** Pale, see-through copy of the paint: the shed skin. */
+export function exuviaPaint(p: SpeciesPaint): SpeciesPaint {
+  return {
+    carapace: mixHex(p.carapace, "#d8ccb8", 0.6),
+    abdomen: mixHex(p.abdomen, "#d8ccb8", 0.6),
+    legs: mixHex(p.legs, "#d8ccb8", 0.55),
+    accent: mixHex(p.accent, "#efe6d8", 0.5),
+    toes: mixHex(p.toes, "#d8ccb8", 0.5),
+  };
+}
+
+/** Fresh molt: richer, darker colour than the animal had going in. */
+export function freshPaint(p: SpeciesPaint): SpeciesPaint {
+  return {
+    carapace: mixHex(p.carapace, "#000000", 0.08),
+    abdomen: mixHex(p.abdomen, "#000000", 0.08),
+    legs: mixHex(p.legs, "#000000", 0.06),
+    accent: mixHex(p.accent, "#ffffff", 0.12),
+    toes: mixHex(p.toes, "#ffffff", 0.1),
+  };
+}
+
+/** Belly-up colours for the first part of the molt. */
+function ventralPaint(p: SpeciesPaint): SpeciesPaint {
+  return {
+    carapace: mixHex(p.carapace, "#3a2a20", 0.5),
+    abdomen: mixHex(p.abdomen, "#4a3a30", 0.55),
+    legs: mixHex(p.legs, "#3a2a20", 0.35),
+    accent: mixHex(p.accent, "#8a7a68", 0.5),
+    toes: p.toes,
+  };
+}
+
+function mixHex(a: string, b: string, t: number) {
+  const A = hexToRgb(a);
+  const B = hexToRgb(b);
+  const h = (v: number) => Math.round(v).toString(16).padStart(2, "0");
+  return `#${h(A.r + (B.r - A.r) * t)}${h(A.g + (B.g - A.g) * t)}${h(A.b + (B.b - A.b) * t)}`;
+}
+
+function drawExuvia(g: CanvasRenderingContext2D, w: World, look: TankLook) {
+  const L = w.layout;
+  const s = w.spider.scale;
+  const pos = { x: L.w * 0.3, y: L.h * 0.34 };
+  const shell = { ...w, spider: posedSpider(s, pos, 0.7, 0.55), time: 0 };
+  g.save();
+  g.globalAlpha = 0.72;
+  drawSpider(g, shell, { ...look, paint: exuviaPaint(look.paint), premolt: false });
+  g.restore();
+}
+
+export const MOLT_SECONDS = 5.2;
+
+let sceneCache: { seed: number; world: World } | null = null;
+function sceneWorld(seed: number) {
+  if (sceneCache?.seed !== seed) {
+    sceneCache = {
+      seed,
+      world: makeWorld({
+        life: "terrestrial",
+        temper: "docile",
+        stage: "adult",
+        hasDish: false,
+        hungry: false,
+        premolt: false,
+        seed,
+      }),
+    };
+  }
+  return sceneCache.world;
+}
+
+/**
+ * The molt, as a short scene on a plain substrate:
+ * on its back, legs curled → crawls out forward leaving the skin →
+ * rolls upright in fresh colour → stands.
+ */
+export function drawMoltScene(
+  g: CanvasRenderingContext2D,
+  px: number,
+  t: number,
+  look: TankLook,
+  scale: number,
+) {
+  const world = sceneWorld(look.seed);
+  const L = world.layout;
+  const k = px / L.w;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, px, px);
+  g.drawImage(substrate(L, px), 0, 0);
+  g.setTransform(k, 0, 0, k, 0, 0);
+
+  const heading = -Math.PI / 2 + 0.25;
+  const start = {
+    x: L.w * 0.5 - Math.cos(heading) * 26 * scale,
+    y: L.h * 0.56 - Math.sin(heading) * 26 * scale,
+  };
+  const travel = 52 * scale;
+  const smooth = (x: number) => x * x * (3 - 2 * x);
+  const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+
+  // Phases (seconds).
+  const back = 1.2;
+  const out = 3.4;
+  const roll = 4.3;
+  const pe = smooth(clamp01((t - back) / (out - back)));
+  const pr = clamp01((t - out) / (roll - out));
+
+  // Old skin stays where the spider lay.
+  if (t >= back) {
+    const shell = posedSpider(scale, start, heading, 0.8);
+    g.save();
+    g.globalAlpha = 0.55 + 0.2 * pe;
+    drawSpider(
+      g,
+      { ...world, spider: shell, time: 0 },
+      { ...look, paint: exuviaPaint(look.paint), premolt: false, curly: look.curly },
+    );
+    g.restore();
+  }
+
+  // The animal.
+  const pos = {
+    x: start.x + Math.cos(heading) * travel * pe,
+    y: start.y + Math.sin(heading) * travel * pe,
+  };
+  const curl = t < back ? 0.85 : t < out ? 0.85 - 0.45 * pe : 0.4 * (1 - pr);
+  const sp = posedSpider(scale, pos, heading, Math.max(0, curl), t);
+  const belly = t < out + (roll - out) * 0.5;
+  const paint = belly ? ventralPaint(freshPaint(look.paint)) : freshPaint(look.paint);
+  const squash = t < out ? 1 : Math.max(0.08, Math.abs(Math.cos(pr * Math.PI)));
+  g.save();
+  g.translate(pos.x, pos.y);
+  g.rotate(heading);
+  g.scale(1, squash);
+  g.rotate(-heading);
+  g.translate(-pos.x, -pos.y);
+  drawSpider(g, { ...world, spider: sp, time: t }, { ...look, paint, premolt: false });
+  g.restore();
+  drawGlass(g, L, { ...look, mistAge: Infinity, grime: 0 });
 }

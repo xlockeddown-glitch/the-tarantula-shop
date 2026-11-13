@@ -31,7 +31,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Tanks",
-    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food.",
+    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed.",
   },
   {
     title: "Mornings",

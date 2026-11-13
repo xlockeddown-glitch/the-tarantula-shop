@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bug, Droplets, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { careDue, daysSince, needsMist, needsWaterBowl } from "@/lib/game/care";
+import { careDue, daysSince, needsMist, needsWaterBowl, offFood } from "@/lib/game/care";
 import { paintOf } from "@/lib/game/look";
 import {
   isPremolt,
@@ -35,6 +35,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const worldRef = useRef<World | null>(null);
   const premolt = isPremolt(sp);
+  const freshMolt = sp.moltDay === day;
   const fedToday = sp.fedDay === day;
   const hasDish = needsWaterBowl(spec);
   const mistTank = needsMist(spec);
@@ -52,6 +53,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
     grime: grimy ? 1 : 0,
     premolt,
     seed: hashSeedText(sp.id),
+    exuvia: freshMolt,
   });
 
   const wateredRef = useRef(watered);
@@ -65,19 +67,21 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
       temper: spec.temper,
       stage: sp.stage,
       hasDish,
-      hungry: !fedToday && !premolt,
+      hungry: !fedToday && !offFood(sp, day),
       premolt,
       seed: hashSeedText(sp.id),
     });
+    if (freshMolt)
+      worldRef.current.caption = "Fresh out of its old skin. Fangs are still soft. No food today.";
   }
 
   // Keep world flags in step with the save.
   useEffect(() => {
     const w = worldRef.current!;
-    w.hungry = !fedToday && !premolt;
+    w.hungry = !fedToday && !premolt && !freshMolt;
     w.premolt = premolt;
     look.current.premolt = premolt;
-  }, [fedToday, premolt, grimy]);
+  }, [fedToday, premolt, freshMolt, grimy]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -131,11 +135,13 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
     poke(w, toTank(w.layout, rect, e.clientX, e.clientY));
   };
 
-  const feedLabel = fedToday
-    ? "Fed today"
-    : feeders < 1
-      ? "Bin empty"
-      : `Drop a cricket · ${feeders}`;
+  const feedLabel = freshMolt
+    ? "Just molted"
+    : fedToday
+      ? "Fed today"
+      : feeders < 1
+        ? "Bin empty"
+        : `Drop a cricket · ${feeders}`;
 
   return (
     <>
@@ -167,7 +173,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
           <Button
             size="sm"
             className="rounded-full"
-            disabled={fedToday || feeders < 1 || eating}
+            disabled={freshMolt || fedToday || feeders < 1 || eating}
             onClick={() => dropCricket(worldRef.current!)}
           >
             <Bug className="size-4" /> {feedLabel}
@@ -237,6 +243,7 @@ export function TankView() {
   if (!sp || !spec) return null;
   const fed = daysSince(sp.fedDay, day);
   const premolt = isPremolt(sp);
+  const freshMolt = sp.moltDay === day;
   return (
     <div
       className="fixed inset-0 z-40 overflow-y-auto bg-[#2e3432]/92 px-3 pt-4 pb-10 backdrop-blur-[2px]"
@@ -269,6 +276,9 @@ export function TankView() {
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/80">
           <span>{fed === 0 ? "Fed today" : `Fed ${fed}d ago`}</span>
           {premolt ? <span className="text-[#e8a0b8]">Premolt · molts tonight</span> : null}
+          {freshMolt ? (
+            <span className="text-[#e8a0b8]">Molted last night · skin's in the tank</span>
+          ) : null}
           {!sp.wild && !sp.inBreed ? (
             <Button
               size="sm"
