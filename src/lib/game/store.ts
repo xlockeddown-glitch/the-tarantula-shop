@@ -3,7 +3,9 @@ import { femaleRestDays, pairRisk, restLeft } from "./breed";
 import { applyTendAll, careDue, defaultWall, needsMist, needsWaterBowl, atRisk, wouldDie, type WallBay } from "./care";
 import { passScore } from "./enclosure";
 import { forageRoll, forageLabel, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spaceLabel, TRAIL, FLIPS_PER_DAY, type TrailCard } from "./field";
+import { askLadder, budgetMultFor, judgeAsk, personaFor } from "./haggle";
 import { packToColony, type StarterPack } from "./packs";
+import { orderReveals, type MorningSlip, type RevealCard } from "./reveal";
 import {
   BAY_UNITS,
   dailyGuests,
@@ -23,7 +25,6 @@ import {
 } from "./progress";
 import { bookDepartures, pullDue, toFloorCustomer } from "./returns";
 import {
-  askCeiling,
   clutchNights,
   countStage,
   fairAsk,
@@ -39,7 +40,6 @@ import {
   RENT_PER_NIGHT,
   rollCustomers,
   rollShipOrders,
-  saleChance,
   shipMatch,
   shopSpiders,
   shopStock,
@@ -151,7 +151,7 @@ function buildDayLine(s: GameState): { customers: ShopCustomer[]; returning: Ret
       signNote = `Signboard brought a ${spec.common} guest.`;
     }
   }
-  return { customers, returning: rest, signNote };
+  return { customers: customers.map(dressCustomer), returning: rest, signNote };
 }
 
 function sheWontSell(cust: ShopCustomer, sp: OwnedSpider) {
@@ -159,6 +159,28 @@ function sheWontSell(cust: ShopCustomer, sp: OwnedSpider) {
   if (!spec) return true;
   if (spec.temper === "defensive" && cust.husbandry < husbandryNeed(spec)) return true;
   return false;
+}
+
+/** Give a guest a persona and hidden budget if they don't have one yet. */
+export function dressCustomer(c: ShopCustomer): ShopCustomer {
+  if (c.persona && typeof c.budgetMult === "number") return c;
+  const persona = personaFor(c.id, { returning: c.returning, husbandry: c.husbandry });
+  return { ...c, persona, budgetMult: budgetMultFor(persona, c.id), counter: null };
+}
+
+/** Which listed animal this guest is looking at. Browsers settle on one. */
+export function guestTarget(c: ShopCustomer, colony: OwnedSpider[]): OwnedSpider | null {
+  const listed = shopSpiders(colony).filter((s) => s.listed);
+  if (c.counter) {
+    const held = listed.find((s) => s.id === c.counter!.spiderId);
+    if (held) return held;
+  }
+  const pool = c.kind === "browse" ? listed : listed.filter((s) => s.speciesId === c.want);
+  if (!pool.length) return null;
+  if (c.kind !== "browse") return pool[0]!;
+  let h = 0;
+  for (const ch of c.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return pool[h % pool.length]!;
 }
 
 export type GameState = {
@@ -208,6 +230,10 @@ export type GameState = {
   trailFind: { kind: "empty" | "full" | "silk" | "sling"; space: string; speciesId?: string; wild?: boolean } | null;
   displayPins: DisplayPin[];
   coachBeat: number;
+  /** Cards waiting to be flipped (morning molts, sac pulls). */
+  reveals: RevealCard[];
+  /** Overnight money slip shown above the reveal deck. */
+  morning: MorningSlip | null;
   hydrate: () => void;
   startNew: (shop: string, keeper: string) => void;
   reset: () => void;
@@ -253,6 +279,8 @@ export type GameState = {
   unpinDisplay: (index: number) => void;
   skipCoach: () => void;
   endDay: () => void;
+  nextReveal: () => void;
+  clearReveals: () => void;
 };
 
 const blank = (): Omit<
@@ -263,7 +291,7 @@ const blank = (): Omit<
   | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
   | "serveCustomer" | "refuseCustomer" | "fillOrder" | "startBreed" | "collectClutch"
   | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
-  | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay"
+  | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals"
 > => ({
   started: false,
   packChosen: false,
@@ -311,6 +339,8 @@ const blank = (): Omit<
   trailFind: null,
   displayPins: [],
   coachBeat: 0,
+  reveals: [],
+  morning: null,
 });
 
 export const useGame = create<GameState>((set, get) => ({
@@ -357,7 +387,9 @@ export const useGame = create<GameState>((set, get) => ({
         openedDay: parsed.openedDay ?? 0,
         openedBy: parsed.openedBy === "elizabeth" || parsed.openedBy === "player" ? parsed.openedBy : null,
         toasts: [],
-        customers: parsed.shopMode === "open" ? parsed.customers ?? [] : [],
+        customers: parsed.shopMode === "open" ? (parsed.customers ?? []).map(dressCustomer) : [],
+        reveals: Array.isArray(parsed.reveals) ? parsed.reveals : [],
+        morning: parsed.morning ?? null,
         view: parsed.started ? "world" : "title",
       });
     } catch {
@@ -515,7 +547,8 @@ export const useGame = create<GameState>((set, get) => ({
         ? shopSpiders(s.colony).filter((c) => c.listed)
         : listedMatches(s.colony, cust.want);
     if (matches.length) {
-      get().serveCustomer(cust.id, matches[0]!.id, cust.offer);
+      const c = dressCustomer(cust);
+      get().serveCustomer(cust.id, matches[0]!.id, askLadder(fairAsk(matches[0]!), c.persona!).opener);
       return;
     }
     const spec = spiderById(cust.want);
@@ -821,24 +854,41 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     const fair = fairAsk(sp);
-    const ceiling = askCeiling(fair, cust.offer);
-    if (ask > ceiling) {
+    const guest = dressCustomer(cust);
+    const verdict = judgeAsk({
+      ask,
+      fair,
+      persona: guest.persona!,
+      budgetMult: guest.budgetMult!,
+      counter: guest.counter && guest.counter.spiderId === sp.id ? guest.counter.price : null,
+    });
+    if (verdict.outcome === "walk") {
       set({
         served: [...s.served, customerId],
         customers: s.customers.filter((c) => c.id !== customerId),
       });
-      get().toast(`${cust.name} walked. ${ceiling} was the ceiling.`);
+      get().toast(
+        verdict.reason === "insulted"
+          ? `${cust.name} laughed and walked out. ${ask} was way off.`
+          : `${cust.name} walked. They told you their best.`,
+      );
       persist({ ...get() });
       return;
     }
-    const chance = saleChance(ask, fair);
-    const ok = ask <= cust.offer || ask <= fair || (askedForIt && ask <= ceiling) || Math.random() < chance;
-    if (!ok) {
+    if (verdict.outcome === "counter") {
+      const line =
+        guest.persona === "bargain"
+          ? `"${verdict.counter}, and that's me stretching."`
+          : guest.persona === "collector"
+            ? `"Fine animal. I'll go ${verdict.counter}."`
+            : guest.persona === "regular"
+              ? `"For you? ${verdict.counter}. Final."`
+              : `"Um… could you do ${verdict.counter}?"`;
       set({
-        served: [...s.served, customerId],
-        customers: s.customers.filter((c) => c.id !== customerId),
+        customers: s.customers.map((c) =>
+          c.id === customerId ? { ...guest, counter: { spiderId: sp.id, price: verdict.counter }, line } : c,
+        ),
       });
-      get().toast(`${cust.name} walked. Ask was high.`);
       persist({ ...get() });
       return;
     }
@@ -1002,7 +1052,7 @@ export const useGame = create<GameState>((set, get) => ({
         clutches: s.clutches.filter((c) => c.femaleId !== femaleId),
         colony: s.colony.map((c) => (c.id === femaleId ? { ...c, inBreed: false } : c)),
       });
-      get().toast("The sac collapsed.");
+      set({ reveals: [{ kind: "collapse", id: nid("r"), speciesId: clutch.speciesId }, ...get().reveals] });
       persist({ ...get() });
       return;
     }
@@ -1031,6 +1081,17 @@ export const useGame = create<GameState>((set, get) => ({
       feltBreeds: pair.list,
       feltAlbum: pair.unlocked ? [...new Set([...(s.feltAlbum ?? []), clutch.speciesId])] : s.feltAlbum,
       stats: { ...s.stats, hatches: s.stats.hatches + 1 },
+      reveals: [
+        {
+          kind: "sac",
+          id: nid("r"),
+          speciesId: clutch.speciesId,
+          eggs: n,
+          progress: Math.min(5, counts[clutch.speciesId] ?? 0),
+          unlocked: pair.unlocked,
+        },
+        ...s.reveals,
+      ],
       journal: [
         {
           id: nid("j"),
@@ -1043,11 +1104,6 @@ export const useGame = create<GameState>((set, get) => ({
         ...s.journal,
       ].slice(0, 40),
     });
-    get().toast(
-      pair.unlocked
-        ? `Pair card · ${spec?.common}`
-        : `${n} slings pulled · ${counts[clutch.speciesId]}/5 toward Pair card.`,
-    );
     persist({ ...get() });
   },
 
@@ -1424,6 +1480,7 @@ export const useGame = create<GameState>((set, get) => ({
     const caps = shopCaps(s.shopTier, s.slingShelves);
     let colony = s.colony.map((c) => ({ ...c, days: c.days + 1 }));
     const notes: JournalEntry[] = [];
+    const cards: RevealCard[] = [];
     for (const sp of [...colony]) {
       const spec = spiderById(sp.speciesId);
       const blockedByHouse = spec ? sp.enclosureScore < passScore(spec) && spec.ow : false;
@@ -1434,11 +1491,28 @@ export const useGame = create<GameState>((set, get) => ({
           title: `${sp.tag} held a molt`,
           body: `${spec.common} didn't like the setup. Rebuild on the bench.`,
         });
+        if (moltIfReady(sp, colony, caps).molt) {
+          cards.push({ kind: "held", id: nid("r"), speciesId: sp.speciesId, tag: sp.tag, reason: "setup" });
+        }
         continue;
       }
       const res = moltIfReady(sp, colony, caps);
       colony = colony.map((c) => (c.id === sp.id ? res.spider : c));
       if (res.molt) {
+        if (!sp.personal) {
+          cards.push({
+            kind: "molt",
+            id: nid("r"),
+            speciesId: sp.speciesId,
+            tag: sp.tag,
+            from: sp.stage,
+            to: res.molt,
+            sex: res.spider.sex,
+            sexReveal: sp.sex === "u" && res.spider.sex !== "u",
+            before: fairAsk(sp),
+            after: fairAsk(res.spider),
+          });
+        }
         notes.push({
           id: nid("j"),
           day: s.day,
@@ -1446,6 +1520,7 @@ export const useGame = create<GameState>((set, get) => ({
           body: `${sp.tag} is a ${res.molt}${res.spider.sex !== "u" ? ` (${res.spider.sex})` : ""}.`,
         });
       } else if (res.blocked) {
+        cards.push({ kind: "held", id: nid("r"), speciesId: sp.speciesId, tag: sp.tag, reason: "crib" });
         notes.push({
           id: nid("j"),
           day: s.day,
@@ -1464,6 +1539,7 @@ export const useGame = create<GameState>((set, get) => ({
       else if (atRisk(c, spec, s.day)) lateJars.push(c);
     }
     if (lost.length) {
+      for (const l of lost) cards.push({ kind: "loss", id: nid("r"), speciesId: l.speciesId, tag: l.tag });
       colony = colony.filter((c) => !lost.some((l) => l.id === c.id));
       notes.push({
         id: nid("j"),
@@ -1480,6 +1556,7 @@ export const useGame = create<GameState>((set, get) => ({
       });
     }
     let cash = s.cash;
+    const cashBefore = cash;
     if (s.day >= 3) {
       cash -= s.cash < 8 ? 0 : RENT_PER_NIGHT;
       if (s.cash < 8) {
@@ -1529,6 +1606,7 @@ export const useGame = create<GameState>((set, get) => ({
         colony = [...colony, { ...sl, enclosureScore: 6 }];
         serial += 1;
       }
+      cards.push({ kind: "truck", id: nid("r"), speciesId: t.speciesId, n });
       notes.push({
         id: nid("j"),
         day: nextDay,
@@ -1577,10 +1655,31 @@ export const useGame = create<GameState>((set, get) => ({
       hour: 0,
       view: "world",
       coachBeat: nextCoach(s.coachBeat, 3),
+      reveals: ended ? [] : orderReveals(cards),
+      morning: ended
+        ? null
+        : {
+            day: nextDay,
+            rent: s.day >= 3 && cashBefore >= 8 ? RENT_PER_NIGHT : 0,
+            cash,
+            late: late.length * 6,
+          },
     });
     if (ended) get().toast("Locks changed.");
     else if (lost.length) get().toast(`${lost.length} didn't make the night.`);
-    else get().toast(`Day ${nextDay}.`);
+    else if (!cards.length) get().toast(`Day ${nextDay}.`);
+    persist({ ...get() });
+  },
+
+  nextReveal: () => {
+    const s = get();
+    const rest = s.reveals.slice(1);
+    set({ reveals: rest, morning: rest.length ? s.morning : null });
+    persist({ ...get() });
+  },
+
+  clearReveals: () => {
+    set({ reveals: [], morning: null });
     persist({ ...get() });
   },
 }));

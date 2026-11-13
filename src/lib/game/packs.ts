@@ -29,7 +29,10 @@ export function rollStarterPacks(): StarterPack[] {
 
 export function packToColony(pack: StarterPack): OwnedSpider[] {
   let panes = 0;
+  let firstSling = true;
   return pack.lines.map((line, i) => {
+    const premolt = line.stage === "sling" && firstSling;
+    if (premolt) firstSling = false;
     const sex = line.sex ?? (line.stage === "sling" ? "u" : Math.random() < 0.5 ? "f" : "m");
     const base = makeSling(line.speciesId, 1, line.stage, i + 1, sex);
     const canList = line.stage !== "adult" && panes < 4;
@@ -38,7 +41,8 @@ export function packToColony(pack: StarterPack): OwnedSpider[] {
       ...base,
       stage: line.stage,
       tank: line.stage,
-      days: line.stage === "adult" ? 36 : line.stage === "juvenile" ? 14 : 2,
+      // One sling is in premolt so the very first Sleep ends on a sex reveal.
+      days: line.stage === "adult" ? 36 : line.stage === "juvenile" ? 14 : premolt ? 5 : 2,
       listed: canList,
       enclosureScore: 8,
     };
