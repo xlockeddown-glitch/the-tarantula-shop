@@ -467,11 +467,12 @@ export type ReturningGuest = {
 
 const CUST_NAMES = ["Hana", "Ken", "Sora", "Yui", "Taro", "Aoi", "Gin", "Kuma", "Mira", "Ned", "Priya", "Owen"];
 
-export function rollCustomers(day: number, count = 3): ShopCustomer[] {
-  const n = Math.max(1, SPIDER_SPECIES.length);
+export function rollCustomers(day: number, count = 3, pool: SpiderSpecies[] = SPIDER_SPECIES): ShopCustomer[] {
+  if (!pool.length) return [];
+  const n = pool.length;
   const out: ShopCustomer[] = [];
   for (let i = 0; i < count; i++) {
-    const spec = SPIDER_SPECIES[(day * 5 + i * 11) % n]!;
+    const spec = pool[(day * 5 + i * 11) % n]!;
     const name = CUST_NAMES[(day + i * 3) % CUST_NAMES.length]!;
     const husbandry = 1 + ((day + i * 7) % 7);
     const fair = Math.round(spec.price * (0.85 + ((day + i) % 4) * 0.08));
@@ -490,9 +491,14 @@ export function rollCustomers(day: number, count = 3): ShopCustomer[] {
   return out;
 }
 
-export function rollShipOrders(day: number, count = 2): ShipOrder[] {
-  const pool = SPIDER_SPECIES;
-  const n = Math.max(1, pool.length);
+/**
+ * Requests for animals the shop may not have yet. Drawn from `pool` (the
+ * species the player can actually get), with enough days to buy or grow one.
+ * Pays about a third over fair for the exact stage and sex.
+ */
+export function rollShipOrders(day: number, count = 2, pool: SpiderSpecies[] = SPIDER_SPECIES): ShipOrder[] {
+  if (!pool.length) return [];
+  const n = pool.length;
   const out: ShipOrder[] = [];
   for (let i = 0; i < count; i++) {
     const spec = pool[(day * 7 + i * 13) % n]!;
@@ -507,7 +513,7 @@ export function rollShipOrders(day: number, count = 2): ShipOrder[] {
       speciesId: spec.id,
       stage,
       sex,
-      dueDay: day + 2 + (i % 2),
+      dueDay: day + (stage === "adult" ? 6 : 4) + (i % 2),
       pay: Math.max(14, Math.round(base * 1.35)),
       pack: packLabel(spec),
     });

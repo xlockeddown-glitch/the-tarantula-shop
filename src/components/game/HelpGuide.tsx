@@ -34,6 +34,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed.",
   },
   {
+    title: "Requests",
+    body: "The Requests board on the table lists people who want an exact animal (stage and sex) and pay about a third over fair. Buy or grow one before the days run out, then Ship. Nothing is lost if a request lapses. A guest who wants something you don't have can leave their number: they come back in a few days and offer a little more each visit, up to three times.",
+  },
+  {
     title: "Mornings",
     body: "Overnight molts, truck lots and losses are dealt as cards when you wake. A sling's first molt shows its sex. Tap to flip. Females are worth about half again as much.",
   },

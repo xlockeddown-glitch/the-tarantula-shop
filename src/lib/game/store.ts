@@ -8,6 +8,7 @@ import { packToColony, type StarterPack } from "./packs";
 import { orderReveals, type MorningSlip, type RevealCard } from "./reveal";
 import {
   BAY_UNITS,
+  askableIds,
   dailyGuests,
   displaySlots,
   emptyStats,
@@ -40,6 +41,7 @@ import {
   RENT_PER_NIGHT,
   rollCustomers,
   rollShipOrders,
+  SPIDER_SPECIES,
   shipMatch,
   shopSpiders,
   shopStock,
@@ -125,8 +127,13 @@ function buildDayLine(s: GameState): { customers: ShopCustomer[]; returning: Ret
   const used = new Set([...fromWindow, ...back].map((c) => c.want));
   const featured = (s.displayPins ?? []).map((p) => p.speciesId).filter(Boolean);
   const signWant = featured.find((id) => spiderById(id));
-  const extra = rollCustomers(s.day, 6)
-    .filter((c) => isUnlocked(c.want, s.profit) && !used.has(c.want))
+  const askable = askableIds(s.profit);
+  const extra = rollCustomers(
+    s.day,
+    6,
+    SPIDER_SPECIES.filter((sp) => askable.has(sp.id)),
+  )
+    .filter((c) => !used.has(c.want))
     .slice(0, Math.max(0, n - fromWindow.length - back.length));
   let customers = [...fromWindow, ...back, ...extra].slice(0, n);
   let signNote = "";
@@ -264,6 +271,7 @@ export type GameState = {
   sellSlingLot: (speciesId: string) => void;
   serveCustomer: (customerId: string, spiderId: string, ask: number) => void;
   refuseCustomer: (customerId: string) => void;
+  bookGuest: (customerId: string) => void;
   fillOrder: (orderId: string, spiderId: string) => void;
   startBreed: (femaleId: string, maleId: string) => void;
   collectClutch: (femaleId: string) => void;
@@ -293,7 +301,7 @@ const blank = (): Omit<
   | "openShop" | "closeShop" | "talkTo" | "tend" | "feed" | "careAll" | "careRack"
   | "listSpider" | "dumpListed" | "nameSpider" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
   | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
-  | "serveCustomer" | "refuseCustomer" | "fillOrder" | "startBreed" | "collectClutch"
+  | "serveCustomer" | "refuseCustomer" | "bookGuest" | "fillOrder" | "startBreed" | "collectClutch"
   | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
   | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals" | "openTank" | "closeTank"
 > => ({
@@ -939,6 +947,26 @@ export const useGame = create<GameState>((set, get) => ({
     persist({ ...get() });
   },
 
+  bookGuest: (customerId) => {
+    const s = get();
+    const cust = s.customers.find((c) => c.id === customerId);
+    if (!cust || cust.kind !== "order") return;
+    const { book, dropped } = bookDepartures(s.returning, [cust], s.day);
+    set({
+      returning: book,
+      served: [...s.served, customerId],
+      customers: s.customers.filter((c) => c.id !== customerId),
+    });
+    const row = book.find((g) => g.id === cust.id || (g.name === cust.name && g.want === cust.want));
+    const spec = spiderById(cust.want);
+    get().toast(
+      dropped || !row
+        ? `${cust.name} has asked too many times. They won't be back.`
+        : `${cust.name} will be back day ${row.nextDay} for a ${spec?.common ?? "spider"}.`,
+    );
+    persist({ ...get() });
+  },
+
   fillOrder: (orderId, spiderId) => {
     const s = get();
     const order = s.orders.find((o) => o.id === orderId);
@@ -964,6 +992,7 @@ export const useGame = create<GameState>((set, get) => ({
         ...s.journal,
       ].slice(0, 40),
     });
+    get().toast(`${order.name} paid ${order.pay} for the ${spec?.common ?? "spider"}. Request filled.`);
     persist({ ...get() });
   },
 
@@ -1577,13 +1606,11 @@ export const useGame = create<GameState>((set, get) => ({
     const late = s.orders.filter((o) => o.dueDay < s.day);
     const keepOrders = s.orders.filter((o) => o.dueDay >= s.day);
     if (late.length) {
-      const penalty = late.length * 6;
-      cash -= penalty;
       notes.push({
         id: nid("j"),
         day: s.day,
-        title: "Late slip",
-        body: `${late.length} ship order aged out. Docked ${penalty}.`,
+        title: "Request lapsed",
+        body: `${late.map((o) => o.name).join(", ")} stopped waiting and bought elsewhere.`,
       });
     }
     const nextDay = s.day + 1;
@@ -1636,7 +1663,10 @@ export const useGame = create<GameState>((set, get) => ({
       cleanNights: s.stats.cleanNights + (allCared && !lost.length ? 1 : 0),
       losses: s.stats.losses + lost.length,
     };
-    const nextOrders = [...keepOrders, ...rollShipOrders(nextDay, orderN).filter((o) => isUnlocked(o.speciesId, s.profit))].slice(0, 4);
+    const canGet = SPIDER_SPECIES.filter((sp) => isUnlocked(sp.id, s.profit));
+    const openKeys = new Set(keepOrders.map((o) => `${o.speciesId}:${o.stage}:${o.sex}`));
+    const fresh = rollShipOrders(nextDay, orderN, canGet).filter((o) => !openKeys.has(`${o.speciesId}:${o.stage}:${o.sex}`));
+    const nextOrders = [...keepOrders, ...fresh].slice(0, 4);
     set({
       ...s,
       day: nextDay,
@@ -1669,7 +1699,7 @@ export const useGame = create<GameState>((set, get) => ({
             day: nextDay,
             rent: s.day >= 3 && cashBefore >= 8 ? RENT_PER_NIGHT : 0,
             cash,
-            late: late.length * 6,
+            late: 0,
           },
     });
     if (ended) get().toast("Locks changed.");

@@ -76,6 +76,14 @@ export function nextUnlock(profit: number): { need: number; hint: string } | nul
   return { need: nxt.profit - profit, hint: spec?.common ?? "new stock" };
 }
 
+/** Unlocked species plus the next tier: what walk-in guests may ask about. */
+export function askableIds(profit: number): Set<string> {
+  const ids = unlockedIds(profit);
+  const nxt = TIER_UNLOCKS.find((t) => t.profit > profit);
+  for (const id of nxt?.ids ?? []) ids.add(id);
+  return ids;
+}
+
 export function isUnlocked(id: string, profit: number) {
   return unlockedIds(profit).has(id);
 }
