@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye } from "lucide-react";
 import { portraitFor, feltCardArt } from "@/lib/game/look";
 import { careDue } from "@/lib/game/care";
 import { PATH, PATH_COLS, pathCell, DRAWS_PER_DAY, BIOME_HEX, BIOME_ART, spaceLabel, cardColor, cardBlurb, hopPawn, type TrailCard } from "@/lib/game/field";
@@ -25,11 +26,28 @@ function groupStacks(list: OwnedSpider[]) {
   return [...m.values()];
 }
 
+function LookButton({ id, label }: { id: string; label: string }) {
+  const openTank = useGame((s) => s.openTank);
+  return (
+    <button
+      type="button"
+      onClick={() => openTank(id)}
+      aria-label={`Look at ${label}`}
+      title="Look in the tank"
+      className="absolute top-1 left-1 z-20 flex size-7 items-center justify-center rounded-full border-2 border-[#efe6d8] bg-[#3a3a3c]/85 text-[#efe6d8] shadow-[0_2px_0_#8a8680] active:scale-95"
+    >
+      <Eye className="size-3.5" />
+    </button>
+  );
+}
+
 function ChipStack({ spiders, onTop }: { spiders: OwnedSpider[]; onTop: (id: string) => void }) {
   const top = spiders[0];
   if (!top) return null;
   const n = spiders.length;
   return (
+    <div className="relative">
+      <LookButton id={top.id} label={spiderById(top.speciesId)?.common ?? "it"} />
     <button type="button" className="relative" onClick={() => onTop(top.id)}>
       {n > 1 ? (
         <span className="absolute top-1 left-1 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#d8cfc0] shadow-[0_8px_0_#8a8680]" />
@@ -46,6 +64,7 @@ function ChipStack({ spiders, onTop }: { spiders: OwnedSpider[]; onTop: (id: str
         </span>
       ) : null}
     </button>
+    </div>
   );
 }
 
@@ -442,9 +461,12 @@ export function FeltTable() {
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {listedSpiders.map((sp) => (
-              <button key={sp.id} type="button" className="text-left" onClick={() => listSpider(sp.id, false)}>
-                <CardFace spider={sp} fill />
-              </button>
+              <div key={sp.id} className="relative">
+                <LookButton id={sp.id} label={spiderById(sp.speciesId)?.common ?? "it"} />
+                <button type="button" className="block w-full text-left" onClick={() => listSpider(sp.id, false)}>
+                  <CardFace spider={sp} fill />
+                </button>
+              </div>
             ))}
             {Array.from({ length: Math.max(0, windows - listedSpiders.length) }).map((_, i) => (
               <EmptySlot key={`win-empty-${i}`} label="Window" large />

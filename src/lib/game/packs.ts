@@ -45,6 +45,8 @@ export function packToColony(pack: StarterPack): OwnedSpider[] {
       days: line.stage === "adult" ? 36 : line.stage === "juvenile" ? 14 : premolt ? 5 : 2,
       listed: canList,
       enclosureScore: 8,
+      // Off the truck hungry, so there's something to do in the tank on day one.
+      fedDay: 0,
     };
   });
 }
