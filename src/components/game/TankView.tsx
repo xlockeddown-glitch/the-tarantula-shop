@@ -32,6 +32,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   const day = useGame((s) => s.day);
   const feeders = useGame((s) => s.feeders);
   const tend = useGame((s) => s.tend);
+  const noteHandFeed = useGame((s) => s.noteHandFeed);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const worldRef = useRef<World | null>(null);
   const premolt = isPremolt(sp);
@@ -111,7 +112,10 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
       if (px > 0) drawTank(g, w, L, px);
       while (w.events.length) {
         const e = w.events.shift();
-        if (e === "ate") tend(sp.id, "feed");
+        if (e === "ate") {
+          tend(sp.id, "feed");
+          noteHandFeed();
+        }
       }
       setCaption((c) => (c === w.caption ? c : w.caption));
       const cricket = !!(w.cricket && w.cricket.alive);

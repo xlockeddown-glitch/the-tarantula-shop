@@ -3,6 +3,7 @@ import { femaleRestDays, pairRisk, restLeft } from "./breed";
 import { applyTendAll, careDue, defaultWall, needsMist, needsWaterBowl, atRisk, wouldDie, type WallBay } from "./care";
 import { passScore } from "./enclosure";
 import { forageRoll, forageLabel, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spaceLabel, TRAIL, FLIPS_PER_DAY, type TrailCard } from "./field";
+import { isDone, isLapsed, pickGoal, type Goal, type GoalKind, type GoalSnapshot } from "./goals";
 import { askLadder, budgetMultFor, judgeAsk, personaFor } from "./haggle";
 import { packToColony, type StarterPack } from "./packs";
 import { orderReveals, type MorningSlip, type RevealCard } from "./reveal";
@@ -190,6 +191,36 @@ export function guestTarget(c: ShopCustomer, colony: OwnedSpider[]): OwnedSpider
   return pool[h % pool.length]!;
 }
 
+/** Flatten the save into what goals measure. */
+export function goalSnapshot(s: GameState): GoalSnapshot {
+  const sellable = shopSpiders(s.colony).filter((c) => !c.inBreed && !c.wild);
+  return {
+    day: s.day,
+    cash: s.cash,
+    feeders: s.feeders,
+    sales: s.stats.sales,
+    pushSales: s.stats.pushSales ?? 0,
+    handFeeds: s.stats.handFeeds ?? 0,
+    ordersFilled: s.stats.ordersFilled ?? 0,
+    truckBuys: s.stats.truckBuys ?? 0,
+    listed: sellable.filter((c) => c.listed).length,
+    windowCap: windowSlots(s.shopTier),
+    sellable: sellable.length,
+    hungry: s.colony.filter((c) => {
+      const spec = spiderById(c.speciesId);
+      return !c.personal && spec ? careDue(c, spec, s.day).includes("feed") : false;
+    }).length,
+    openOrders: s.orders
+      .filter((o) => !s.colony.some((c) => shipMatch(c, o)))
+      .map((o) => {
+        const spec = spiderById(o.speciesId);
+        const sex = o.sex === "f" ? "♀ " : o.sex === "m" ? "♂ " : "";
+        const stage = o.stage === "adult" ? "an adult" : "a juvenile";
+        return { id: o.id, dueDay: o.dueDay, text: `Get ${o.name} ${stage} ${sex}${spec?.common ?? "spider"}` };
+      }),
+  };
+}
+
 export type GameState = {
   started: boolean;
   packChosen: boolean;
@@ -243,6 +274,10 @@ export type GameState = {
   morning: MorningSlip | null;
   /** Animal open in the live tank view. Not restored on reload. */
   tankId: string | null;
+  goal: Goal | null;
+  goalsDone: number;
+  /** Day the free swap was last used. */
+  goalSwapDay: number;
   hydrate: () => void;
   startNew: (shop: string, keeper: string) => void;
   reset: () => void;
@@ -292,6 +327,9 @@ export type GameState = {
   nextReveal: () => void;
   clearReveals: () => void;
   openTank: (id: string) => void;
+  checkGoal: () => void;
+  swapGoal: () => void;
+  noteHandFeed: () => void;
   closeTank: () => void;
 };
 
@@ -303,7 +341,7 @@ const blank = (): Omit<
   | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
   | "serveCustomer" | "refuseCustomer" | "bookGuest" | "fillOrder" | "startBreed" | "collectClutch"
   | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
-  | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals" | "openTank" | "closeTank"
+  | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals" | "openTank" | "closeTank" | "checkGoal" | "swapGoal" | "noteHandFeed"
 > => ({
   started: false,
   packChosen: false,
@@ -354,6 +392,9 @@ const blank = (): Omit<
   reveals: [],
   morning: null,
   tankId: null,
+  goal: null,
+  goalsDone: 0,
+  goalSwapDay: 0,
 });
 
 export const useGame = create<GameState>((set, get) => ({
@@ -404,6 +445,9 @@ export const useGame = create<GameState>((set, get) => ({
         reveals: Array.isArray(parsed.reveals) ? parsed.reveals : [],
         morning: parsed.morning ?? null,
         tankId: null,
+        goal: parsed.goal ?? null,
+        goalsDone: parsed.goalsDone ?? 0,
+        goalSwapDay: parsed.goalSwapDay ?? 0,
         view: parsed.started ? "world" : "title",
       });
     } catch {
@@ -719,6 +763,7 @@ export const useGame = create<GameState>((set, get) => ({
     set({
       cash: s.cash - price,
       serial: serial + 1,
+      stats: { ...s.stats, truckBuys: (s.stats.truckBuys ?? 0) + 1 },
       colony: [...s.colony, bought],
       selectedId: bought.id,
     });
@@ -828,7 +873,11 @@ export const useGame = create<GameState>((set, get) => ({
       arriveDay: s.day + 2,
       paid,
     };
-    set({ cash: s.cash - paid, inbound: [...s.inbound, ticket] });
+    set({
+      cash: s.cash - paid,
+      inbound: [...s.inbound, ticket],
+      stats: { ...s.stats, truckBuys: (s.stats.truckBuys ?? 0) + 1 },
+    });
     get().toast(`${qty} ${spec.common} slings booked. Truck in 2 mornings.`);
     persist({ ...get() });
   },
@@ -909,11 +958,12 @@ export const useGame = create<GameState>((set, get) => ({
     const soldCounts = { ...s.soldCounts };
     soldCounts[sp.speciesId] = (soldCounts[sp.speciesId] ?? 0) + 1;
     const sale = unlockTrack(s.feltSales ?? [], sp.speciesId, (soldCounts[sp.speciesId] ?? 0) >= 3);
+    const pushed = ask > fair;
     set({
       cash: s.cash + ask,
       profit: s.profit + ask,
       dealsToday: s.dealsToday + 1,
-      stats: { ...s.stats, sales: s.stats.sales + 1 },
+      stats: { ...s.stats, sales: s.stats.sales + 1, pushSales: (s.stats.pushSales ?? 0) + (pushed ? 1 : 0) },
       served: [...s.served, customerId],
       customers: s.customers.filter((c) => c.id !== customerId),
       colony: s.colony.filter((c) => c.id !== spiderId),
@@ -979,7 +1029,7 @@ export const useGame = create<GameState>((set, get) => ({
     set({
       cash: s.cash + order.pay,
       profit: s.profit + order.pay,
-      stats: { ...s.stats, sales: s.stats.sales + 1 },
+      stats: { ...s.stats, sales: s.stats.sales + 1, ordersFilled: (s.stats.ordersFilled ?? 0) + 1 },
       colony: s.colony.filter((c) => c.id !== spiderId),
       orders: s.orders.filter((o) => o.id !== orderId),
       journal: [
@@ -1726,6 +1776,47 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   closeTank: () => set({ tankId: null }),
+
+  noteHandFeed: () => {
+    const s = get();
+    set({ stats: { ...s.stats, handFeeds: (s.stats.handFeeds ?? 0) + 1 } });
+    persist({ ...get() });
+  },
+
+  checkGoal: () => {
+    const s = get();
+    if (!s.colony.length) return;
+    const snap = goalSnapshot(s);
+    const g = s.goal;
+    if (g && isDone(g, snap)) {
+      const r = g.reward;
+      const after = { ...snap, cash: snap.cash + r.chips, feeders: snap.feeders + (r.feeders ?? 0) };
+      set({
+        cash: s.cash + r.chips,
+        feeders: s.feeders + (r.feeders ?? 0),
+        goalsDone: s.goalsDone + 1,
+        goal: pickGoal(after, s.goalsDone + 1, g.kind),
+      });
+      get().toast(`Goal done · +${r.chips} chips${r.feeders ? ` · +${r.feeders} crickets` : ""}`);
+      persist({ ...get() });
+      return;
+    }
+    if (!g || isLapsed(g, snap)) {
+      const next = pickGoal(snap, s.goalsDone, g?.kind);
+      if (next?.id === g?.id) return;
+      set({ goal: next });
+      persist({ ...get() });
+    }
+  },
+
+  swapGoal: () => {
+    const s = get();
+    if (!s.goal || s.goalSwapDay === s.day) return;
+    const next = pickGoal(goalSnapshot(s), s.goalsDone, s.goal.kind as GoalKind);
+    if (!next) return;
+    set({ goal: next, goalSwapDay: s.day });
+    persist({ ...get() });
+  },
 }));
 
 export function wholesaleToday(day: number, profit = 0) {
