@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Bug, Home, Store, Truck, Utensils } from "lucide-react";
+import { BookOpen, Bug, Eye, Home, Store, Truck, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeltTable } from "./FeltTable";
 import { FeltBinder } from "./FeltBinder";
 import { HelpGuide } from "./HelpGuide";
 import { RevealDeck } from "./RevealDeck";
+import { TankView } from "./TankView";
 import { SexMark } from "./SexMark";
 import { portraitFor } from "@/lib/game/look";
 import { rollStarterPacks } from "@/lib/game/packs";
@@ -200,6 +201,7 @@ function Tabletop() {
       </div>
       <Nav />
       <HelpGuide />
+      <TankView />
       <RevealDeck />
       <div className="pointer-events-none fixed top-16 right-3 z-40 flex w-[min(100%-1.5rem,280px)] flex-col gap-2">
         {toasts.map((t) => (
@@ -345,6 +347,7 @@ function LoftView() {
   const buySlingShelf = useGame((s) => s.buySlingShelf);
   const listSpider = useGame((s) => s.listSpider);
   const tend = useGame((s) => s.tend);
+  const openTank = useGame((s) => s.openTank);
   const caps = shopCaps(shopTier, shelves);
   const plan = loftUpgrade(shopTier);
   const miss = missingUpgrade(stats, cash, shopTier);
@@ -385,6 +388,9 @@ function LoftView() {
                   {STAGE_LABEL[sp.stage]} · <SexMark sex={sp.sex} /> · {fairAsk(sp)}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
+                  <Button size="sm" className="rounded-full" variant="secondary" onClick={() => openTank(sp.id)}>
+                    <Eye className="size-4" /> Look
+                  </Button>
                   <Button size="sm" className="rounded-full" variant={sp.listed ? "secondary" : "paper"} onClick={() => listSpider(sp.id, !sp.listed)}>{sp.listed ? "Unlist" : "List"}</Button>
                   {due.map((k) => (
                     <Button key={k} size="sm" variant="ghost" className="rounded-full" onClick={() => tend(sp.id, k)}>{k}</Button>

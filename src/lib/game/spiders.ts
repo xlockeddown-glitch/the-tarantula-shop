@@ -305,6 +305,11 @@ export function tankFits(stage: SpiderStage, tank: TankSize) {
   return TANK_RANK[tank] >= TANK_RANK[minTankFor(stage)];
 }
 
+/** Molts at the next Sleep: dark abdomen, off food. */
+export function isPremolt(sp: OwnedSpider) {
+  return sp.stage !== "adult" && sp.days >= STAGE_DAYS[sp.stage] - 1;
+}
+
 export function nextStage(stage: SpiderStage): SpiderStage | null {
   if (stage === "sling") return "juvenile";
   if (stage === "juvenile") return "adult";

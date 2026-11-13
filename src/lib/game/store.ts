@@ -234,6 +234,8 @@ export type GameState = {
   reveals: RevealCard[];
   /** Overnight money slip shown above the reveal deck. */
   morning: MorningSlip | null;
+  /** Animal open in the live tank view. Not restored on reload. */
+  tankId: string | null;
   hydrate: () => void;
   startNew: (shop: string, keeper: string) => void;
   reset: () => void;
@@ -281,6 +283,8 @@ export type GameState = {
   endDay: () => void;
   nextReveal: () => void;
   clearReveals: () => void;
+  openTank: (id: string) => void;
+  closeTank: () => void;
 };
 
 const blank = (): Omit<
@@ -291,7 +295,7 @@ const blank = (): Omit<
   | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
   | "serveCustomer" | "refuseCustomer" | "fillOrder" | "startBreed" | "collectClutch"
   | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
-  | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals"
+  | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals" | "openTank" | "closeTank"
 > => ({
   started: false,
   packChosen: false,
@@ -341,6 +345,7 @@ const blank = (): Omit<
   coachBeat: 0,
   reveals: [],
   morning: null,
+  tankId: null,
 });
 
 export const useGame = create<GameState>((set, get) => ({
@@ -390,6 +395,7 @@ export const useGame = create<GameState>((set, get) => ({
         customers: parsed.shopMode === "open" ? (parsed.customers ?? []).map(dressCustomer) : [],
         reveals: Array.isArray(parsed.reveals) ? parsed.reveals : [],
         morning: parsed.morning ?? null,
+        tankId: null,
         view: parsed.started ? "world" : "title",
       });
     } catch {
@@ -1682,6 +1688,13 @@ export const useGame = create<GameState>((set, get) => ({
     set({ reveals: [], morning: null });
     persist({ ...get() });
   },
+
+  openTank: (id) => {
+    if (!get().colony.some((c) => c.id === id)) return;
+    set({ tankId: id });
+  },
+
+  closeTank: () => set({ tankId: null }),
 }));
 
 export function wholesaleToday(day: number, profit = 0) {

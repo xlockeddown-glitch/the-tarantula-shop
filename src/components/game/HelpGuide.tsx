@@ -30,6 +30,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: "Name your price. Their offer always sells. Fair usually does. Push risks it: they may counter once with their real number (take it or not), or walk. Read the tag and the line under their name — bargain hunters walk on a push, collectors often pay it.",
   },
   {
+    title: "Tanks",
+    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food.",
+  },
+  {
     title: "Mornings",
     body: "Overnight molts, truck lots and losses are dealt as cards when you wake. A sling's first molt shows its sex. Tap to flip. Females are worth about half again as much.",
   },

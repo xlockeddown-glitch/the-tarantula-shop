@@ -2,7 +2,7 @@
 
 A cozy felt-table game about running a real-species tarantula shop. You list stock in the window, breed a pair when you can, hang portraits you earn, and — once Elizabeth has the till — walk a candy-colored trail looking for wild slings.
 
-Version **0.1.04**. Early and playable. Not a finished commercial release.
+Version **0.1.05**. Early and playable. Not a finished commercial release.
 
 ## How a day goes
 
@@ -12,6 +12,8 @@ Version **0.1.04**. Early and playable. Not a finished commercial release.
 4. **Sleep.** Rent comes due. Molts happen overnight and are dealt as cards in the morning. A sling’s first molt reveals its sex.
 5. When you can, **Introduce** an adult female and male of the same species. Collect the sac from Racks when it’s ready.
 6. Hire **Elizabeth** after extra glass and two hatches. She runs Open and tends jars. That day you can take the **Trail** instead.
+
+Tap the eye on any card to open its live tank: feed by dropping a cricket, fill the dish, mist, and poke the tarantula to see its temperament.
 
 The `?` in the corner is the rest of the rules.
 
