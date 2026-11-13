@@ -1,6 +1,6 @@
 import { cribsForTier } from "./loftRoom";
 import { neglectDays } from "./progress";
-import { spiderById, type OwnedSpider, type SpiderSpecies, type SpiderStage } from "./spiders";
+import { isPremolt, spiderById, type OwnedSpider, type SpiderSpecies, type SpiderStage } from "./spiders";
 
 export type CareKind = "feed" | "water" | "mist" | "clean";
 
@@ -24,10 +24,15 @@ export function daysSince(last: number | undefined, day: number) {
   return day - (last ?? day);
 }
 
+/** Premolt or fresh out of a molt: keepers don't feed, and nothing should nag. */
+export function offFood(sp: OwnedSpider, day: number) {
+  return isPremolt(sp) || sp.moltDay === day;
+}
+
 export function careDue(sp: OwnedSpider, spec: SpiderSpecies, day: number): CareKind[] {
   const due: CareKind[] = [];
   const feed = feedWindow(sp.stage);
-  if (daysSince(sp.fedDay, day) >= feed.every) due.push("feed");
+  if (!offFood(sp, day) && daysSince(sp.fedDay, day) >= feed.every) due.push("feed");
   if (needsWaterBowl(spec) && daysSince(sp.waterDay, day) >= 1) due.push("water");
   if (needsMist(spec) && daysSince(sp.mistDay, day) >= 1) due.push("mist");
   if (daysSince(sp.cleanDay, day) >= CLEAN_EVERY) due.push("clean");
@@ -37,7 +42,7 @@ export function careDue(sp: OwnedSpider, spec: SpiderSpecies, day: number): Care
 export function careLate(sp: OwnedSpider, spec: SpiderSpecies, day: number): CareKind[] {
   const late: CareKind[] = [];
   const feed = feedWindow(sp.stage);
-  if (daysSince(sp.fedDay, day) >= feed.late) late.push("feed");
+  if (!offFood(sp, day) && daysSince(sp.fedDay, day) >= feed.late) late.push("feed");
   if (needsWaterBowl(spec) && daysSince(sp.waterDay, day) >= 2) late.push("water");
   if (needsMist(spec) && daysSince(sp.mistDay, day) >= 2) late.push("mist");
   if (daysSince(sp.cleanDay, day) >= CLEAN_EVERY + 5) late.push("clean");

@@ -333,6 +333,57 @@ function turnToward(w: World, p: Vec, dt: number, rate = 1.6) {
   return Math.abs(diff);
 }
 
+/**
+ * A spider in a fixed pose for scenes (molt, shed skin).
+ * curl 0 = legs at rest, 1 = legs pulled in tight over the body.
+ */
+export function posedSpider(
+  scale: number,
+  pos: Vec,
+  heading: number,
+  curl: number,
+  wobble = 0,
+): Spider {
+  const sp: Spider = {
+    pos,
+    heading,
+    vel: { x: 0, y: 0 },
+    scale,
+    mode: "idle",
+    timer: 0,
+    target: null,
+    legs: [],
+    raise: 0,
+    chew: 0,
+    lookAt: null,
+    pokes: [],
+  };
+  for (const side of [-1, 1] as const) {
+    for (let idx = 0; idx < 4; idx++) {
+      const h = hipLocal(idx, side, scale);
+      const r = restLocal(idx, side, scale);
+      const k = Math.min(
+        1,
+        Math.max(0, curl + Math.sin(wobble * 7 + idx * 1.7 + side) * 0.06 * (curl > 0.2 ? 1 : 0)),
+      );
+      const local = { x: r.x + (h.x - r.x) * k * 0.72, y: r.y + (h.y - r.y) * k * 0.72 };
+      const foot = toWorld(sp, local.x, local.y);
+      sp.legs.push({
+        side,
+        idx,
+        group: 0,
+        foot,
+        from: foot,
+        to: foot,
+        t: 1,
+        dur: 0.1,
+        stepping: false,
+      });
+    }
+  }
+  return sp;
+}
+
 /** Mouth position (between the chelicerae). */
 export function mouth(sp: Spider): Vec {
   return toWorld(sp, (BODY.carRx + 4) * sp.scale, 0);

@@ -1,24 +1,77 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { feltCardArt } from "@/lib/game/look";
+import { feltCardArt, paintOf } from "@/lib/game/look";
+import { drawMoltScene, MOLT_SECONDS } from "@/lib/game/tankDraw";
+import { hashSeedText } from "@/lib/game/tankSim";
 import type { RevealCard } from "@/lib/game/reveal";
 import { spiderById, STAGE_LABEL } from "@/lib/game/spiders";
 import { useGame } from "@/lib/game/store";
 
 /** Cards that are worth a tap to flip. Everything else deals face-up. */
 function wantsFlip(card: RevealCard) {
-  return (card.kind === "molt" && card.sexReveal) || card.kind === "sac";
+  return card.kind === "molt" || card.kind === "sac";
+}
+
+/** The overnight molt, played on the back of the card before it flips. */
+function MoltCanvas({
+  speciesId,
+  seed,
+  onDone,
+}: {
+  speciesId: string;
+  seed: string;
+  onDone: () => void;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const done = useRef(onDone);
+  done.current = onDone;
+  useEffect(() => {
+    const canvas = ref.current!;
+    const g = canvas.getContext("2d")!;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const px = Math.round(canvas.getBoundingClientRect().width * dpr);
+    canvas.width = px;
+    canvas.height = px;
+    const look = {
+      paint: paintOf(speciesId),
+      curly: speciesId === "tliltocatl-albopilosus",
+      water: 0,
+      mistAge: Infinity,
+      grime: 0,
+      premolt: false,
+      seed: hashSeedText(seed),
+    };
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    const t0 = performance.now();
+    let fired = false;
+    const tick = (now: number) => {
+      const t = reduce ? MOLT_SECONDS : Math.min(MOLT_SECONDS, (now - t0) / 1000);
+      drawMoltScene(g, px, t, look, 1.9);
+      if (t >= MOLT_SECONDS - 0.6 && !fired) {
+        fired = true;
+        done.current();
+      }
+      if (t < MOLT_SECONDS) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [speciesId, seed]);
+  return (
+    <canvas ref={ref} className="block aspect-square w-full rounded-[14px]" aria-hidden="true" />
+  );
 }
 
 function backLabel(card: RevealCard) {
   if (card.kind === "sac") return "Egg sac";
-  if (card.kind === "molt" && card.sexReveal) return "Fresh molt";
+  if (card.kind === "molt") return "Molted overnight";
   return "Overnight";
 }
 
 function backHint(card: RevealCard) {
   if (card.kind === "sac") return "Tap to open it up";
-  return "Tap to check the sex";
+  if (card.kind === "molt" && card.sexReveal) return "Tap to check the sex";
+  return "Tap to see it";
 }
 
 function Sparkles({ color }: { color: string }) {
@@ -168,6 +221,7 @@ function Card({
   onFlip: () => void;
 }) {
   const flipTap = wantsFlip(card);
+  const [played, setPlayed] = useState(false);
   const spec = spiderById(card.speciesId);
   const female = card.kind === "molt" && card.sexReveal && card.sex === "f";
   const ring =
@@ -191,19 +245,38 @@ function Card({
       >
         <div
           aria-hidden={flipped}
-          className={`flip-face flip-back flex flex-col items-center justify-center rounded-[22px] border-4 border-[#efe6d8] shadow-[0_16px_0_#2e3432] ${flipTap ? "premolt" : ""}`}
+          className={`flip-face flip-back flex flex-col items-center justify-center rounded-[22px] border-4 border-[#efe6d8] shadow-[0_16px_0_#2e3432] ${flipTap && card.kind !== "molt" ? "premolt" : ""}`}
           style={{ backgroundImage: "url(/game/felt/mat.webp)", backgroundSize: "cover" }}
         >
-          <div className="rounded-[18px] bg-[#efe6d8]/92 px-6 py-5 text-center">
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#6a6560]">
-              {backLabel(card)}
-            </p>
-            <p className="font-display mt-1 text-7xl leading-none text-[#3a3a3c]">?</p>
-            <p className="mt-2 font-display text-lg text-[#3a3a3c]">{spec?.common}</p>
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-[#c47858]">
-              {backHint(card)}
-            </p>
-          </div>
+          {card.kind === "molt" ? (
+            <div className="w-[88%] rounded-[18px] bg-[#efe6d8]/92 p-3 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#6a6560]">
+                {backLabel(card)}
+              </p>
+              <div className="mt-2">
+                <MoltCanvas
+                  speciesId={card.speciesId}
+                  seed={card.id}
+                  onDone={() => setPlayed(true)}
+                />
+              </div>
+              <p className="mt-2 font-display text-lg text-[#3a3a3c]">{spec?.common}</p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-[#c47858]">
+                {played ? backHint(card) : "Crawling out of the old skin…"}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-[18px] bg-[#efe6d8]/92 px-6 py-5 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#6a6560]">
+                {backLabel(card)}
+              </p>
+              <p className="font-display mt-1 text-7xl leading-none text-[#3a3a3c]">?</p>
+              <p className="mt-2 font-display text-lg text-[#3a3a3c]">{spec?.common}</p>
+              <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-[#c47858]">
+                {backHint(card)}
+              </p>
+            </div>
+          )}
         </div>
         <div
           className="flip-face flip-front flex flex-col overflow-hidden rounded-[22px] border-4 bg-[#efe6d8] shadow-[0_16px_0_#2e3432]"

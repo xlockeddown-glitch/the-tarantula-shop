@@ -1503,7 +1503,8 @@ export const useGame = create<GameState>((set, get) => ({
         continue;
       }
       const res = moltIfReady(sp, colony, caps);
-      colony = colony.map((c) => (c.id === sp.id ? res.spider : c));
+      const fresh = res.molt ? { ...res.spider, moltDay: s.day + 1 } : res.spider;
+      colony = colony.map((c) => (c.id === sp.id ? fresh : c));
       if (res.molt) {
         if (!sp.personal) {
           cards.push({
