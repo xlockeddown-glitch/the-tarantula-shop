@@ -2,9 +2,22 @@ import { useState } from "react";
 import { Eye } from "lucide-react";
 import { portraitFor, feltCardArt } from "@/lib/game/look";
 import { careDue } from "@/lib/game/care";
-import { PATH, PATH_COLS, pathCell, DRAWS_PER_DAY, BIOME_HEX, BIOME_ART, spaceLabel, cardColor, cardBlurb, hopPawn, type TrailCard } from "@/lib/game/field";
+import {
+  PATH,
+  PATH_COLS,
+  pathCell,
+  DRAWS_PER_DAY,
+  BIOME_HEX,
+  BIOME_ART,
+  spaceLabel,
+  cardColor,
+  cardBlurb,
+  hopPawn,
+  type TrailCard,
+} from "@/lib/game/field";
 import { windowSlots, type DisplayPin } from "@/lib/game/progress";
-import { spiderById, fairAsk, pairNick, type OwnedSpider } from "@/lib/game/spiders";
+import { spiderById, fairAsk, pairNick, shipMatch, type OwnedSpider } from "@/lib/game/spiders";
+import { bumpedOffer } from "@/lib/game/returns";
 import { askLadder, PERSONAS, type PersonaId } from "@/lib/game/haggle";
 import { guestTarget, useGame } from "@/lib/game/store";
 import type { ShopCustomer } from "@/lib/game/spiders";
@@ -48,36 +61,52 @@ function ChipStack({ spiders, onTop }: { spiders: OwnedSpider[]; onTop: (id: str
   return (
     <div className="relative">
       <LookButton id={top.id} label={spiderById(top.speciesId)?.common ?? "it"} />
-    <button type="button" className="relative" onClick={() => onTop(top.id)}>
-      {n > 1 ? (
-        <span className="absolute top-1 left-1 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#d8cfc0] shadow-[0_8px_0_#8a8680]" />
-      ) : null}
-      {n > 2 ? (
-        <span className="absolute top-0.5 left-0.5 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#e4d8c8]" />
-      ) : null}
-      <span className="relative block">
-        <CardFace spider={top} small />
-      </span>
-      {n > 1 ? (
-        <span className="absolute -top-1 -right-1 z-10 rounded-full bg-[#c47858] px-1.5 py-0.5 font-mono text-[10px] text-[#efe6d8] shadow-[0_2px_0_#8a8680]">
-          ×{n}
+      <button type="button" className="relative" onClick={() => onTop(top.id)}>
+        {n > 1 ? (
+          <span className="absolute top-1 left-1 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#d8cfc0] shadow-[0_8px_0_#8a8680]" />
+        ) : null}
+        {n > 2 ? (
+          <span className="absolute top-0.5 left-0.5 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#e4d8c8]" />
+        ) : null}
+        <span className="relative block">
+          <CardFace spider={top} small />
         </span>
-      ) : null}
-    </button>
+        {n > 1 ? (
+          <span className="absolute -top-1 -right-1 z-10 rounded-full bg-[#c47858] px-1.5 py-0.5 font-mono text-[10px] text-[#efe6d8] shadow-[0_2px_0_#8a8680]">
+            ×{n}
+          </span>
+        ) : null}
+      </button>
     </div>
   );
 }
 
-function CardFace({ spider, small, fill }: { spider: OwnedSpider; small?: boolean; fill?: boolean }) {
+function CardFace({
+  spider,
+  small,
+  fill,
+}: {
+  spider: OwnedSpider;
+  small?: boolean;
+  fill?: boolean;
+}) {
   const spec = spiderById(spider.speciesId);
   const day = useGame((s) => s.day);
   if (!spec) return null;
   const due = careDue(spider, spec, day).length > 0;
   return (
-    <article className={`overflow-hidden rounded-[12px] border-2 border-[#efe6d8] bg-[#efe6d8] shadow-[0_8px_0_#8a8680] ${small ? "w-[88px]" : fill ? "w-full" : "w-[128px]"}`}>
-      <img src={portraitFor(spec, spider.stage)} alt="" className={small ? "h-16 w-full object-contain" : "h-28 w-full object-contain sm:h-32"} />
+    <article
+      className={`overflow-hidden rounded-[12px] border-2 border-[#efe6d8] bg-[#efe6d8] shadow-[0_8px_0_#8a8680] ${small ? "w-[88px]" : fill ? "w-full" : "w-[128px]"}`}
+    >
+      <img
+        src={portraitFor(spec, spider.stage)}
+        alt=""
+        className={small ? "h-16 w-full object-contain" : "h-28 w-full object-contain sm:h-32"}
+      />
       <div className="bg-[#efe6d8] px-1.5 py-1">
-        <p className="truncate text-[11px] font-medium leading-tight text-[#3a3a3c]">{spec.common}</p>
+        <p className="truncate text-[11px] font-medium leading-tight text-[#3a3a3c]">
+          {spec.common}
+        </p>
         <p className="font-mono text-[9px] uppercase tracking-wide text-[#6a6560]">
           {spider.stage} · <SexMark sex={spider.sex} />
           {spider.listed ? " · sale" : ""}
@@ -112,9 +141,13 @@ function WallFace({ pin, onUnpin }: { pin: DisplayPin; onUnpin: () => void }) {
 
 function EmptySlot({ label, large }: { label: string; large?: boolean }) {
   return (
-    <div className={`relative overflow-hidden rounded-[12px] border-2 border-[#efe6d8] shadow-[0_6px_0_#8a8680] ${large ? "h-40 w-full sm:h-44" : "h-[118px] w-[88px]"}`}>
+    <div
+      className={`relative overflow-hidden rounded-[12px] border-2 border-[#efe6d8] shadow-[0_6px_0_#8a8680] ${large ? "h-40 w-full sm:h-44" : "h-[118px] w-[88px]"}`}
+    >
       <img src="/game/felt/slot-empty.webp" alt="" className="size-full object-cover" />
-      <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[8px] uppercase text-[#3a3a3c]">{label}</span>
+      <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[8px] uppercase text-[#3a3a3c]">
+        {label}
+      </span>
     </div>
   );
 }
@@ -123,12 +156,23 @@ function TrailFindFace({
   find,
   onDone,
 }: {
-  find: { kind: "empty" | "full" | "silk" | "sling"; space: string; speciesId?: string; wild?: boolean };
+  find: {
+    kind: "empty" | "full" | "silk" | "sling";
+    space: string;
+    speciesId?: string;
+    wild?: boolean;
+  };
   onDone: () => void;
 }) {
   const spec = find.speciesId ? spiderById(find.speciesId) : null;
   const title =
-    find.kind === "sling" ? "Wild sling" : find.kind === "silk" ? "Sticky silk" : find.kind === "full" ? "Racks full" : "Empty";
+    find.kind === "sling"
+      ? "Wild sling"
+      : find.kind === "silk"
+        ? "Sticky silk"
+        : find.kind === "full"
+          ? "Racks full"
+          : "Empty";
   const body =
     find.kind === "sling" && spec
       ? `${spec.common} · ${spec.latin}. On the rack until it molts.`
@@ -140,17 +184,26 @@ function TrailFindFace({
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#3a3a3c]/45 p-4">
       <div className="flex max-w-sm flex-col items-center rounded-[20px] border-4 border-[#efe6d8] bg-[#efe6d8] p-5 text-center shadow-[0_16px_0_#8a8680]">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">{find.space}</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">
+          {find.space}
+        </p>
         <h3 className="font-display mt-1 text-3xl text-[#3a3a3c]">{title}</h3>
         {spec ? (
-          <img src={portraitFor(spec, "sling")} alt="" className="mt-3 size-28 rounded-[14px] border-4 border-[#5aa8a0] object-contain bg-[#f4eee6]" />
+          <img
+            src={portraitFor(spec, "sling")}
+            alt=""
+            className="mt-3 size-28 rounded-[14px] border-4 border-[#5aa8a0] object-contain bg-[#f4eee6]"
+          />
         ) : (
           <div className="mt-3 flex size-28 items-center justify-center rounded-[14px] border-4 border-[#efe6d8] bg-[#c8c4be] font-mono text-[11px] uppercase text-[#6a6560]">
             {find.kind === "silk" ? "Silk" : "—"}
           </div>
         )}
         <p className="mt-3 text-base text-[#3a3a3c]">{body}</p>
-        <Button className="mt-4 rounded-full bg-[#5aa8a0] px-6 text-[#efe6d8] hover:bg-[#4a9890]" onClick={onDone}>
+        <Button
+          className="mt-4 rounded-full bg-[#5aa8a0] px-6 text-[#efe6d8] hover:bg-[#4a9890]"
+          onClick={onDone}
+        >
           {find.kind === "sling" ? "Keep it" : "Alright"}
         </Button>
       </div>
@@ -164,11 +217,158 @@ function TrailCardFace({ card, large }: { card: TrailCard; large?: boolean }) {
       className={`flex flex-col items-center justify-center rounded-[16px] border-4 border-[#efe6d8] px-3 text-center shadow-[0_8px_0_#8a8680] ${large ? "h-52 w-36" : "h-24 w-[4.4rem]"}`}
       style={{ backgroundColor: cardColor(card) }}
     >
-      <p className={`font-mono uppercase tracking-wide text-[#efe6d8] ${large ? "text-[11px]" : "text-[8px]"}`}>
+      <p
+        className={`font-mono uppercase tracking-wide text-[#efe6d8] ${large ? "text-[11px]" : "text-[8px]"}`}
+      >
         {card.kind === "color" ? (card.double ? "Double" : "Color") : card.kind}
       </p>
-      <p className={`font-display leading-tight text-[#efe6d8] ${large ? "mt-2 text-3xl" : "text-sm"}`}>{card.label}</p>
+      <p
+        className={`font-display leading-tight text-[#efe6d8] ${large ? "mt-2 text-3xl" : "text-sm"}`}
+      >
+        {card.label}
+      </p>
     </div>
+  );
+}
+
+/** True if shipping this adult would break up your only pair of the species. */
+function lastBreeder(sp: OwnedSpider, colony: OwnedSpider[]) {
+  if (sp.stage !== "adult" || sp.sex === "u") return false;
+  const adults = colony.filter(
+    (c) => c.speciesId === sp.speciesId && c.stage === "adult" && !c.personal,
+  );
+  const same = adults.filter((c) => c.sex === sp.sex).length;
+  const other = adults.some((c) => c.sex !== sp.sex && c.sex !== "u");
+  return same === 1 && other;
+}
+
+/** Requests: people who want something specific and will pay over fair for it. */
+function RequestBoard() {
+  const orders = useGame((s) => s.orders);
+  const returning = useGame((s) => s.returning);
+  const colony = useGame((s) => s.colony);
+  const day = useGame((s) => s.day);
+  const fillOrder = useGame((s) => s.fillOrder);
+  const setView = useGame((s) => s.setView);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  if (!orders.length && !returning.length) return null;
+  const soon = returning.filter((g) => g.nextDay <= day + 2).slice(0, 3);
+  const later = returning.length - soon.length;
+  return (
+    <section className="mt-3 rounded-[14px] bg-[#efe6d8]/70 p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+          Requests · pay over fair
+        </p>
+        <button
+          type="button"
+          className="font-mono text-[10px] uppercase text-[#c47858] underline-offset-2 hover:underline"
+          onClick={() => setView("wholesale")}
+        >
+          Truck
+        </button>
+      </div>
+      <div className="mt-2 space-y-2">
+        {orders.map((o) => {
+          const spec = spiderById(o.speciesId);
+          if (!spec) return null;
+          const matches = colony.filter((c) => shipMatch(c, o));
+          // Ship the cheapest animal that fits, so an "any sex" slip doesn't take a female.
+          const pick = [...matches].sort(
+            (a, b) => fairAsk(a) - fairAsk(b) || Number(a.listed) - Number(b.listed),
+          )[0];
+          const left = o.dueDay - day;
+          const growing = colony.some((c) => c.speciesId === o.speciesId && !c.personal);
+          return (
+            <div
+              key={o.id}
+              className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 rounded-[12px] border border-[#3a3a3c]/10 bg-[#f4eee6] p-2"
+            >
+              <img
+                src={portraitFor(spec, o.stage)}
+                alt=""
+                className="size-12 shrink-0 rounded-[10px] bg-[#efe6d8] object-contain"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm leading-tight text-[#3a3a3c]">
+                  <span className="font-medium">{o.name}</span> wants{" "}
+                  {o.stage === "adult" ? "an adult" : "a juvenile"}{" "}
+                  {o.sex === "any" ? "" : <SexMark sex={o.sex} />} {spec.common}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] uppercase text-[#6a6560]">
+                  Pays <span className="text-[#c47858]">{o.pay}</span> ·{" "}
+                  {left <= 0 ? "last day" : `${left} day${left === 1 ? "" : "s"} left`}
+                  {!pick ? (growing ? " · one's growing" : " · none in stock") : ""}
+                </p>
+              </div>
+              {pick ? (
+                confirm === o.id ? (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="shrink-0 rounded-full"
+                    onClick={() => {
+                      setConfirm(null);
+                      fillOrder(o.id, pick.id);
+                    }}
+                  >
+                    Ship my last {pick.sex === "f" ? "♀" : "♂"}?
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="shrink-0 rounded-full"
+                    onClick={() =>
+                      lastBreeder(pick, colony) ? setConfirm(o.id) : fillOrder(o.id, pick.id)
+                    }
+                  >
+                    Ship {pick.tag.replace("SP-", "#")}
+                  </Button>
+                )
+              ) : null}
+            </div>
+          );
+        })}
+        {soon.map((g) => {
+          const spec = spiderById(g.want);
+          if (!spec) return null;
+          const have = colony.some((c) => c.speciesId === g.want && !c.personal && !c.inBreed);
+          return (
+            <div
+              key={g.id}
+              className="flex items-center gap-3 rounded-[12px] border border-dashed border-[#3a3a3c]/20 p-2"
+            >
+              <img
+                src={portraitFor(spec, "juvenile")}
+                alt=""
+                className="size-10 shrink-0 rounded-[10px] bg-[#efe6d8] object-contain opacity-80"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm leading-tight text-[#3a3a3c]">
+                  <span className="font-medium">{g.name}</span> is coming back for a {spec.common}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] uppercase text-[#6a6560]">
+                  {g.nextDay <= day ? "Today" : `Day ${g.nextDay}`} · up to {bumpedOffer(g)} ·{" "}
+                  {have ? "put one in the window" : "none in stock"}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+        {later > 0 ? (
+          <p className="font-mono text-[10px] uppercase text-[#6a6560]">
+            +{later} more coming back later ·{" "}
+            <button
+              type="button"
+              className="text-[#c47858] underline-offset-2 hover:underline"
+              onClick={() => setView("ledger")}
+            >
+              LEDGER
+            </button>
+          </p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -183,28 +383,59 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
   const colony = useGame((s) => s.colony);
   const serve = useGame((s) => s.serveCustomer);
   const refuse = useGame((s) => s.refuseCustomer);
+  const book = useGame((s) => s.bookGuest);
+  const listSpider = useGame((s) => s.listSpider);
   const persona = PERSONAS[guest.persona ?? "first"];
   const tint = PERSONA_TINT[persona.id];
   const target = guestTarget(guest, colony);
   const spec = target ? spiderById(target.speciesId) : null;
   const ladder = target ? askLadder(fairAsk(target), persona.id) : null;
-  const counter = guest.counter && target && guest.counter.spiderId === target.id ? guest.counter.price : null;
-  const wantName = spiderById(guest.want)?.common ?? guest.want;
+  const counter =
+    guest.counter && target && guest.counter.spiderId === target.id ? guest.counter.price : null;
+  const wantSpec = spiderById(guest.want);
+  const wantName = wantSpec?.common ?? guest.want;
+  // Never suggest breaking up the only breeding pair.
+  const onRack = colony.find(
+    (c) =>
+      c.speciesId === guest.want &&
+      !c.listed &&
+      !c.personal &&
+      !c.inBreed &&
+      !c.wild &&
+      !lastBreeder(c, colony),
+  );
   return (
-    <div className="guest-in rounded-[14px] border-2 bg-[#f4eee6] p-3" style={{ borderColor: `${tint}88` }}>
+    <div
+      className="guest-in rounded-[14px] border-2 bg-[#f4eee6] p-3"
+      style={{ borderColor: `${tint}88` }}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-display text-lg leading-none text-[#3a3a3c]">{guest.name}</p>
-        <span className="rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-[#efe6d8]" style={{ backgroundColor: tint }}>
+        <span
+          className="rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-[#efe6d8]"
+          style={{ backgroundColor: tint }}
+        >
           {persona.label}
         </span>
-        {guest.returning ? <span className="font-mono text-[9px] uppercase text-[#6a6560]">visit {guest.visits + 1}</span> : null}
+        {guest.returning ? (
+          <span className="font-mono text-[9px] uppercase text-[#6a6560]">
+            visit {guest.visits + 1}
+          </span>
+        ) : null}
       </div>
       <p className="mt-1 text-sm italic text-[#6a6560]">{persona.tell}</p>
       <p className="text-sm text-[#3a3a3c]">
-        {guest.kind === "browse" ? (spec ? `Browsing. Keeps looking at the ${spec.common}.` : "Browsing the window.") : `Came in for a ${wantName}.`}
+        {guest.kind === "browse"
+          ? spec
+            ? `Browsing. Keeps looking at the ${spec.common}.`
+            : "Browsing the window."
+          : `Came in for a ${wantName}.`}
       </p>
       {guest.line ? (
-        <p key={guest.line} className="nudge mt-2 inline-block rounded-[12px] rounded-tl-[2px] bg-[#3a3a3c] px-3 py-1.5 text-sm text-[#efe6d8]">
+        <p
+          key={guest.line}
+          className="nudge mt-2 inline-block rounded-[12px] rounded-tl-[2px] bg-[#3a3a3c] px-3 py-1.5 text-sm text-[#efe6d8]"
+        >
           {guest.line}
         </p>
       ) : null}
@@ -222,10 +453,19 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
             <div className="mt-1 flex flex-wrap gap-1.5">
               {counter != null ? (
                 <>
-                  <Button size="sm" className="rounded-full" onClick={() => serve(guest.id, target.id, counter)}>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => serve(guest.id, target.id, counter)}
+                  >
                     Take {counter}
                   </Button>
-                  <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(guest.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-full"
+                    onClick={() => refuse(guest.id)}
+                  >
                     No deal
                   </Button>
                 </>
@@ -240,7 +480,11 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
                   >
                     Their offer {ladder.opener}
                   </Button>
-                  <Button size="sm" className="rounded-full" onClick={() => serve(guest.id, target.id, ladder.fair)}>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => serve(guest.id, target.id, ladder.fair)}
+                  >
                     Fair {ladder.fair}
                   </Button>
                   <Button
@@ -252,7 +496,12 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
                   >
                     Push {ladder.push}
                   </Button>
-                  <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(guest.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-full"
+                    onClick={() => refuse(guest.id)}
+                  >
                     Pass
                   </Button>
                 </>
@@ -261,11 +510,52 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
           </div>
         </div>
       ) : (
-        <div className="mt-2 flex items-center gap-2">
-          <p className="text-sm text-[#6a6560]">Nothing in the window for them.</p>
-          <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(guest.id)}>
-            Pass
-          </Button>
+        <div className="mt-2 flex items-center gap-3">
+          {wantSpec ? (
+            <img
+              src={portraitFor(wantSpec, "juvenile")}
+              alt=""
+              className="size-14 shrink-0 rounded-[10px] border-2 border-dashed border-[#3a3a3c]/25 bg-[#efe6d8] object-contain opacity-70"
+            />
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-[#6a6560]">
+              {guest.kind === "browse"
+                ? "Nothing in the window."
+                : onRack
+                  ? "You have one on the rack."
+                  : "You don't stock one yet."}
+            </p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {onRack && guest.kind !== "browse" ? (
+                <Button
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => listSpider(onRack.id, true)}
+                >
+                  Bring it out
+                </Button>
+              ) : null}
+              {guest.kind === "order" ? (
+                <Button
+                  size="sm"
+                  variant={onRack ? "secondary" : "default"}
+                  className="rounded-full"
+                  onClick={() => book(guest.id)}
+                >
+                  Take their number
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-full"
+                onClick={() => refuse(guest.id)}
+              >
+                Pass
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -274,15 +564,33 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
 
 function CoachCard({ beat, onSkip }: { beat: number; onSkip: () => void }) {
   const copy = [
-    { kicker: "1 / 4", title: "Window vs rack", body: "The window is already stocked. Guests only buy those. Tap a rack chip to list another, then Open shop." },
-    { kicker: "2 / 4", title: "Guests", body: "Name your price. Their offer always sells. Fair usually does. Push and they might counter, or walk. Read the line under their name." },
-    { kicker: "3 / 4", title: "Night", body: "Tend all (feed and water), then Sleep in the top bar." },
-    { kicker: "4 / 4", title: "That's a day", body: "When you've got an adult pair on the rack, Introduce. Truck, Binder, and Notes sit in the bottom bar. The ? has the rest." },
+    {
+      kicker: "1 / 4",
+      title: "Window vs rack",
+      body: "The window is already stocked. Guests only buy those. Tap a rack chip to list another, then Open shop.",
+    },
+    {
+      kicker: "2 / 4",
+      title: "Guests",
+      body: "Name your price. Their offer always sells. Fair usually does. Push and they might counter, or walk. Read the line under their name.",
+    },
+    {
+      kicker: "3 / 4",
+      title: "Night",
+      body: "Tend all (feed and water), then Sleep in the top bar.",
+    },
+    {
+      kicker: "4 / 4",
+      title: "That's a day",
+      body: "When you've got an adult pair on the rack, Introduce. Truck, Binder, and Notes sit in the bottom bar. The ? has the rest.",
+    },
   ][Math.min(3, Math.max(0, beat))]!;
   return (
     <div className="mb-3 flex items-start justify-between gap-3 rounded-[14px] border-2 border-[#c47858] bg-[#efe6d8] px-3 py-2.5">
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-wide text-[#c47858]">{copy.kicker} · {copy.title}</p>
+        <p className="font-mono text-[10px] uppercase tracking-wide text-[#c47858]">
+          {copy.kicker} · {copy.title}
+        </p>
         <p className="mt-1 text-sm text-[#3a3a3c]">{copy.body}</p>
       </div>
       <Button size="sm" variant="ghost" className="shrink-0 rounded-full" onClick={onSkip}>
@@ -319,10 +627,19 @@ export function FeltTable() {
   const windows = windowSlots(shopTier);
   const listedSpiders = colony.filter((c) => c.listed && !c.personal);
   const rack = colony.filter((c) => !c.personal && !c.listed && !c.inBreed);
-  const females = colony.filter((c) => c.stage === "adult" && c.sex === "f" && !c.personal && !c.inBreed);
+  const females = colony.filter(
+    (c) => c.stage === "adult" && c.sex === "f" && !c.personal && !c.inBreed,
+  );
   const pairs = females
     .map((female) => {
-      const male = colony.find((c) => c.stage === "adult" && c.sex === "m" && !c.personal && !c.inBreed && c.speciesId === female.speciesId);
+      const male = colony.find(
+        (c) =>
+          c.stage === "adult" &&
+          c.sex === "m" &&
+          !c.personal &&
+          !c.inBreed &&
+          c.speciesId === female.speciesId,
+      );
       const rest = Math.max(0, (female.breedRestUntil ?? 0) - day);
       return { female, male, rest };
     })
@@ -346,7 +663,9 @@ export function FeltTable() {
       >
         <div className="rounded-[16px] bg-[#c8c4be] p-4 ring-1 ring-[#3a3a3c]/10">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#3a3a3c]/70">Felt trail · Candy path</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#3a3a3c]/70">
+              Felt trail · Candy path
+            </p>
             <Button size="sm" variant="secondary" className="rounded-full" onClick={leaveField}>
               Back to shop
             </Button>
@@ -375,10 +694,18 @@ export function FeltTable() {
                   style={{
                     gridRow: pos.row,
                     gridColumn: pos.col,
-                    backgroundColor: space.rare ? "#e8a0b8" : space.silk ? "#b8b4ae" : BIOME_HEX[space.biome],
+                    backgroundColor: space.rare
+                      ? "#e8a0b8"
+                      : space.silk
+                        ? "#b8b4ae"
+                        : BIOME_HEX[space.biome],
                   }}
                 >
-                  <img src={BIOME_ART[space.biome]} alt="" className="size-full object-cover opacity-55" />
+                  <img
+                    src={BIOME_ART[space.biome]}
+                    alt=""
+                    className="size-full object-cover opacity-55"
+                  />
                   <span className="absolute inset-x-0 bottom-0 bg-[#efe6d8]/90 py-0.5 text-center font-mono text-[8px] uppercase text-[#3a3a3c]">
                     {spaceLabel(space)}
                   </span>
@@ -405,18 +732,25 @@ export function FeltTable() {
         {trailPending ? (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#3a3a3c]/45 p-4">
             <div className="flex max-w-sm flex-col items-center rounded-[20px] border-4 border-[#efe6d8] bg-[#efe6d8] p-5 text-center shadow-[0_16px_0_#8a8680]">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">You drew</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">
+                You drew
+              </p>
               <div className="mt-3">
                 <TrailCardFace card={trailPending} large />
               </div>
               <p className="mt-4 text-base text-[#3a3a3c]">{cardBlurb(trailPending, trailPawn)}</p>
-              <Button className="mt-4 rounded-full bg-[#c47858] px-6 text-[#efe6d8] hover:bg-[#b46848]" onClick={resolveTrailCard}>
+              <Button
+                className="mt-4 rounded-full bg-[#c47858] px-6 text-[#efe6d8] hover:bg-[#b46848]"
+                onClick={resolveTrailCard}
+              >
                 {trailPending.kind === "silk" ? "Stay put" : "Hop"}
               </Button>
             </div>
           </div>
         ) : null}
-        {trailFind && !trailPending ? <TrailFindFace find={trailFind} onDone={dismissTrailFind} /> : null}
+        {trailFind && !trailPending ? (
+          <TrailFindFace find={trailFind} onDone={dismissTrailFind} />
+        ) : null}
       </div>
     );
   }
@@ -442,105 +776,134 @@ export function FeltTable() {
           })}
         </div>
       ) : null}
-    <div
-      className="relative z-10 overflow-hidden rounded-[20px] border border-[#3a3a3c]/15 p-4 shadow-inner"
-      style={{ backgroundImage: "url(/game/felt/mat.webp)", backgroundSize: "cover" }}
-    >
-      <div className="rounded-[16px] bg-[#c8c4be] p-4 ring-1 ring-[#3a3a3c]/10">
-        {sheHasTill ? (
-          <p className="mb-3 rounded-[12px] bg-[#efe6d8]/80 px-3 py-2 text-sm text-[#3a3a3c]">
-            Elizabeth has the till. Trail is in the top bar until you Sleep.
-          </p>
-        ) : null}
+      <div
+        className="relative z-10 overflow-hidden rounded-[20px] border border-[#3a3a3c]/15 p-4 shadow-inner"
+        style={{ backgroundImage: "url(/game/felt/mat.webp)", backgroundSize: "cover" }}
+      >
+        <div className="rounded-[16px] bg-[#c8c4be] p-4 ring-1 ring-[#3a3a3c]/10">
+          {sheHasTill ? (
+            <p className="mb-3 rounded-[12px] bg-[#efe6d8]/80 px-3 py-2 text-sm text-[#3a3a3c]">
+              Elizabeth has the till. Trail is in the top bar until you Sleep.
+            </p>
+          ) : null}
 
-        {coachBeat < 4 ? <CoachCard beat={coachBeat} onSkip={skipCoach} /> : null}
+          {coachBeat < 4 ? <CoachCard beat={coachBeat} onSkip={skipCoach} /> : null}
 
-        <section className="mb-4">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">
-            Window · listed {listedSpiders.length}/{windows}
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {listedSpiders.map((sp) => (
-              <div key={sp.id} className="relative">
-                <LookButton id={sp.id} label={spiderById(sp.speciesId)?.common ?? "it"} />
-                <button type="button" className="block w-full text-left" onClick={() => listSpider(sp.id, false)}>
-                  <CardFace spider={sp} fill />
-                </button>
-              </div>
-            ))}
-            {Array.from({ length: Math.max(0, windows - listedSpiders.length) }).map((_, i) => (
-              <EmptySlot key={`win-empty-${i}`} label="Window" large />
-            ))}
-          </div>
-        </section>
-
-        <section className="mb-4">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">Rack · click to list</p>
-          <div className="flex flex-wrap gap-2">
-            {rack.length === 0 ? (
-              <EmptySlot label="Empty rack" />
-            ) : (
-              groupStacks(rack).map((stack) => (
-                <ChipStack key={stackKey(stack[0]!)} spiders={stack} onTop={(id) => listSpider(id, true)} />
-              ))
-            )}
-          </div>
-        </section>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <section className="rounded-[14px] bg-[#efe6d8]/70 p-3">
-            <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">Breed pair</p>
-            {pairs.length > 1 ? (
-              <select className="mt-2 w-full rounded-full border border-[#3a3a3c]/20 bg-white px-2 py-1 text-sm" value={pick} onChange={(e) => setPick(Number(e.target.value))}>
-                {pairs.map((p, i) => (
-                  <option key={p.female.id} value={i}>
-                    {spiderById(p.female.speciesId)?.common}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {pair?.female && pair.male ? (
-              <div className="mt-2 flex items-end gap-2">
-                <CardFace spider={pair.female} small />
-                <CardFace spider={pair.male} small />
-                <Button
-                  size="sm"
-                  className="rounded-full"
-                  disabled={pair.rest > 0}
-                  onClick={() => startBreed(pair.female.id, pair.male!.id)}
-                >
-                  {pair.rest > 0 ? `Rest ${pair.rest}` : "Introduce"}
-                </Button>
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-[#6a6560]">Need an adult ♀ and ♂ of the same species on the rack.</p>
-            )}
+          <section className="mb-4">
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">
+              Window · listed {listedSpiders.length}/{windows}
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {listedSpiders.map((sp) => (
+                <div key={sp.id} className="relative">
+                  <LookButton id={sp.id} label={spiderById(sp.speciesId)?.common ?? "it"} />
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() => listSpider(sp.id, false)}
+                  >
+                    <CardFace spider={sp} fill />
+                  </button>
+                </div>
+              ))}
+              {Array.from({ length: Math.max(0, windows - listedSpiders.length) }).map((_, i) => (
+                <EmptySlot key={`win-empty-${i}`} label="Window" large />
+              ))}
+            </div>
           </section>
 
-          <section className="rounded-[14px] bg-[#efe6d8]/70 p-3">
-            <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">Across the table</p>
-            {shopMode !== "open" ? (
-              <p className="mt-2 text-sm text-[#6a6560]">
-                {sheHasTill ? "Elizabeth already ran the line. Notes has her slip." : "Open the shop to deal, or let Elizabeth have the till."}
+          <section className="mb-4">
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">
+              Rack · click to list
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {rack.length === 0 ? (
+                <EmptySlot label="Empty rack" />
+              ) : (
+                groupStacks(rack).map((stack) => (
+                  <ChipStack
+                    key={stackKey(stack[0]!)}
+                    spiders={stack}
+                    onTop={(id) => listSpider(id, true)}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <section className="rounded-[14px] bg-[#efe6d8]/70 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+                Breed pair
               </p>
-            ) : queue.length === 0 ? (
-              <p className="mt-2 text-sm text-[#6a6560]">No one sitting yet.</p>
-            ) : (
-              <div className="mt-2 space-y-2.5">
-                {queue.map((g) => (
-                  <GuestCard key={g.id} guest={g} />
-                ))}
-              </div>
-            )}
+              {pairs.length > 1 ? (
+                <select
+                  className="mt-2 w-full rounded-full border border-[#3a3a3c]/20 bg-white px-2 py-1 text-sm"
+                  value={pick}
+                  onChange={(e) => setPick(Number(e.target.value))}
+                >
+                  {pairs.map((p, i) => (
+                    <option key={p.female.id} value={i}>
+                      {spiderById(p.female.speciesId)?.common}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {pair?.female && pair.male ? (
+                <div className="mt-2 flex items-end gap-2">
+                  <CardFace spider={pair.female} small />
+                  <CardFace spider={pair.male} small />
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    disabled={pair.rest > 0}
+                    onClick={() => startBreed(pair.female.id, pair.male!.id)}
+                  >
+                    {pair.rest > 0 ? `Rest ${pair.rest}` : "Introduce"}
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-[#6a6560]">
+                  Need an adult ♀ and ♂ of the same species on the rack.
+                </p>
+              )}
+            </section>
+
+            <section className="rounded-[14px] bg-[#efe6d8]/70 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+                Across the table
+              </p>
+              {shopMode !== "open" ? (
+                <p className="mt-2 text-sm text-[#6a6560]">
+                  {sheHasTill
+                    ? "Elizabeth already ran the line. Notes has her slip."
+                    : "Open the shop to deal, or let Elizabeth have the till."}
+                </p>
+              ) : queue.length === 0 ? (
+                <p className="mt-2 text-sm text-[#6a6560]">No one sitting yet.</p>
+              ) : (
+                <div className="mt-2 space-y-2.5">
+                  {queue.map((g) => (
+                    <GuestCard key={g.id} guest={g} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <RequestBoard />
+
+          <section className="mt-4 rounded-[14px] bg-[#efe6d8]/70 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+              Binder · pin a portrait behind the shop
+            </p>
+            <p className="mt-2 text-xs text-[#6a6560]">
+              3 sales unlocks Window. 5 clutches unlocks Pair. Pin from Binder — it hangs in the
+              background like the title cards. Click a hanging card to take it down.
+            </p>
           </section>
         </div>
-
-        <section className="mt-4 rounded-[14px] bg-[#efe6d8]/70 p-3">
-          <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">Binder · pin a portrait behind the shop</p>
-          <p className="mt-2 text-xs text-[#6a6560]">3 sales unlocks Window. 5 clutches unlocks Pair. Pin from Binder — it hangs in the background like the title cards. Click a hanging card to take it down.</p>
-        </section>
       </div>
-    </div>
     </div>
   );
 }

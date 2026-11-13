@@ -331,8 +331,8 @@ export function RevealDeck() {
               : morning!.day <= 3
                 ? "No rent yet"
                 : "Rent waived"}
-            {morning!.late ? ` · Late slips −${morning!.late}` : ""} · {morning!.cash} chips in the
-            till
+            {" · "}
+            {morning!.cash} chips in the till
           </p>
         ) : null}
       </div>
