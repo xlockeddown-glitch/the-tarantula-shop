@@ -27,7 +27,11 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Guests",
-    body: "If they asked for a species they still pay around fair (15% ceiling). Browsers only take what's in the window. Pass if you don't want the deal.",
+    body: "Name your price. Their offer always sells. Fair usually does. Push risks it: they may counter once with their real number (take it or not), or walk. Read the tag and the line under their name — bargain hunters walk on a push, collectors often pay it.",
+  },
+  {
+    title: "Mornings",
+    body: "Overnight molts, truck lots and losses are dealt as cards when you wake. A sling's first molt shows its sex. Tap to flip. Females are worth about half again as much.",
   },
   {
     title: "Elizabeth",

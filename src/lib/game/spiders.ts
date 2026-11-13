@@ -1,3 +1,4 @@
+import type { PersonaId } from "./haggle";
 export type SpiderKind = "terrestrial" | "arboreal" | "semi" | "dwarf" | "jumper";
 export type SpiderLife = "arboreal" | "terrestrial" | "fossorial";
 export type SpiderRarity = "common" | "uncommon" | "rare";
@@ -438,6 +439,14 @@ export type ShopCustomer = {
   kind: "order" | "browse";
   returning: boolean;
   visits: number;
+  /** Haggle persona. Filled in when the guest sits down. */
+  persona?: PersonaId;
+  /** Hidden budget as a multiple of the animal's fair ask. */
+  budgetMult?: number;
+  /** Set after the guest counters. Their number is final. */
+  counter?: { spiderId: string; price: number } | null;
+  /** Last thing they said, shown on their card. */
+  line?: string;
 };
 
 export type ReturningGuest = {

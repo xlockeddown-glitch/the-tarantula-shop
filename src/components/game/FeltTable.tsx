@@ -4,7 +4,9 @@ import { careDue } from "@/lib/game/care";
 import { PATH, PATH_COLS, pathCell, DRAWS_PER_DAY, BIOME_HEX, BIOME_ART, spaceLabel, cardColor, cardBlurb, hopPawn, type TrailCard } from "@/lib/game/field";
 import { windowSlots, type DisplayPin } from "@/lib/game/progress";
 import { spiderById, fairAsk, pairNick, type OwnedSpider } from "@/lib/game/spiders";
-import { useGame } from "@/lib/game/store";
+import { askLadder, PERSONAS, type PersonaId } from "@/lib/game/haggle";
+import { guestTarget, useGame } from "@/lib/game/store";
+import type { ShopCustomer } from "@/lib/game/spiders";
 import { Button } from "@/components/ui/button";
 import { SexMark } from "./SexMark";
 
@@ -151,10 +153,110 @@ function TrailCardFace({ card, large }: { card: TrailCard; large?: boolean }) {
   );
 }
 
+const PERSONA_TINT: Record<PersonaId, string> = {
+  bargain: "#c4a04a",
+  first: "#5aa8a0",
+  collector: "#8a6aa8",
+  regular: "#c47858",
+};
+
+function GuestCard({ guest }: { guest: ShopCustomer }) {
+  const colony = useGame((s) => s.colony);
+  const serve = useGame((s) => s.serveCustomer);
+  const refuse = useGame((s) => s.refuseCustomer);
+  const persona = PERSONAS[guest.persona ?? "first"];
+  const tint = PERSONA_TINT[persona.id];
+  const target = guestTarget(guest, colony);
+  const spec = target ? spiderById(target.speciesId) : null;
+  const ladder = target ? askLadder(fairAsk(target), persona.id) : null;
+  const counter = guest.counter && target && guest.counter.spiderId === target.id ? guest.counter.price : null;
+  const wantName = spiderById(guest.want)?.common ?? guest.want;
+  return (
+    <div className="guest-in rounded-[14px] border-2 bg-[#f4eee6] p-3" style={{ borderColor: `${tint}88` }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-display text-lg leading-none text-[#3a3a3c]">{guest.name}</p>
+        <span className="rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-[#efe6d8]" style={{ backgroundColor: tint }}>
+          {persona.label}
+        </span>
+        {guest.returning ? <span className="font-mono text-[9px] uppercase text-[#6a6560]">visit {guest.visits + 1}</span> : null}
+      </div>
+      <p className="mt-1 text-sm italic text-[#6a6560]">{persona.tell}</p>
+      <p className="text-sm text-[#3a3a3c]">
+        {guest.kind === "browse" ? (spec ? `Browsing. Keeps looking at the ${spec.common}.` : "Browsing the window.") : `Came in for a ${wantName}.`}
+      </p>
+      {guest.line ? (
+        <p key={guest.line} className="nudge mt-2 inline-block rounded-[12px] rounded-tl-[2px] bg-[#3a3a3c] px-3 py-1.5 text-sm text-[#efe6d8]">
+          {guest.line}
+        </p>
+      ) : null}
+      {target && spec && ladder ? (
+        <div className="mt-2 flex items-center gap-3">
+          <img
+            src={portraitFor(spec, target.stage)}
+            alt=""
+            className="size-14 shrink-0 rounded-[10px] border-2 border-[#efe6d8] bg-[#efe6d8] object-contain shadow-[0_4px_0_#8a8680]"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-mono text-[10px] uppercase text-[#6a6560]">
+              {target.stage} · <SexMark sex={target.sex} /> · fair {ladder.fair}
+            </p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {counter != null ? (
+                <>
+                  <Button size="sm" className="rounded-full" onClick={() => serve(guest.id, target.id, counter)}>
+                    Take {counter}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(guest.id)}>
+                    No deal
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="paper"
+                    className="rounded-full border border-[#3a3a3c]/15"
+                    title="Their opening offer. Always a sale."
+                    onClick={() => serve(guest.id, target.id, ladder.opener)}
+                  >
+                    Their offer {ladder.opener}
+                  </Button>
+                  <Button size="sm" className="rounded-full" onClick={() => serve(guest.id, target.id, ladder.fair)}>
+                    Fair {ladder.fair}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="rounded-full"
+                    title="They might counter, or walk."
+                    onClick={() => serve(guest.id, target.id, ladder.push)}
+                  >
+                    Push {ladder.push}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(guest.id)}>
+                    Pass
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 flex items-center gap-2">
+          <p className="text-sm text-[#6a6560]">Nothing in the window for them.</p>
+          <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(guest.id)}>
+            Pass
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CoachCard({ beat, onSkip }: { beat: number; onSkip: () => void }) {
   const copy = [
     { kicker: "1 / 4", title: "Window vs rack", body: "The window is already stocked. Guests only buy those. Tap a rack chip to list another, then Open shop." },
-    { kicker: "2 / 4", title: "Guests", body: "They only buy what's in the window. Trade or Pass. Close when you're done." },
+    { kicker: "2 / 4", title: "Guests", body: "Name your price. Their offer always sells. Fair usually does. Push and they might counter, or walk. Read the line under their name." },
     { kicker: "3 / 4", title: "Night", body: "Tend all (feed and water), then Sleep in the top bar." },
     { kicker: "4 / 4", title: "That's a day", body: "When you've got an adult pair on the rack, Introduce. Truck, Binder, and Notes sit in the bottom bar. The ? has the rest." },
   ][Math.min(3, Math.max(0, beat))]!;
@@ -193,8 +295,6 @@ export function FeltTable() {
   const unpinDisplay = useGame((s) => s.unpinDisplay);
   const listSpider = useGame((s) => s.listSpider);
   const startBreed = useGame((s) => s.startBreed);
-  const serve = useGame((s) => s.serveCustomer);
-  const refuse = useGame((s) => s.refuseCustomer);
   const leaveField = useGame((s) => s.leaveField);
 
   const windows = windowSlots(shopTier);
@@ -404,26 +504,9 @@ export function FeltTable() {
             ) : queue.length === 0 ? (
               <p className="mt-2 text-sm text-[#6a6560]">No one sitting yet.</p>
             ) : (
-              <div className="mt-2 space-y-3">
+              <div className="mt-2 space-y-2.5">
                 {queue.map((g) => (
-                  <div key={g.id}>
-                    <p className="font-medium text-[#3a3a3c]">{g.name}</p>
-                    <p className="text-sm text-[#6a6560]">
-                      {g.kind === "browse" ? "Browsing the window" : `Wants ${spiderById(g.want)?.common ?? g.want}`}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {listedSpiders
-                        .filter((s) => g.kind === "browse" || s.speciesId === g.want)
-                        .map((s) => (
-                          <Button key={s.id} size="sm" className="rounded-full" onClick={() => serve(g.id, s.id, fairAsk(s))}>
-                            Trade {spiderById(s.speciesId)?.common}
-                          </Button>
-                        ))}
-                      <Button size="sm" variant="ghost" className="rounded-full" onClick={() => refuse(g.id)}>
-                        Pass
-                      </Button>
-                    </div>
-                  </div>
+                  <GuestCard key={g.id} guest={g} />
                 ))}
               </div>
             )}

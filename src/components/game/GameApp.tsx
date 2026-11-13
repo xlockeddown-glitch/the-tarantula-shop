@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FeltTable } from "./FeltTable";
 import { FeltBinder } from "./FeltBinder";
 import { HelpGuide } from "./HelpGuide";
+import { RevealDeck } from "./RevealDeck";
 import { SexMark } from "./SexMark";
 import { portraitFor } from "@/lib/game/look";
 import { rollStarterPacks } from "@/lib/game/packs";
@@ -199,6 +200,7 @@ function Tabletop() {
       </div>
       <Nav />
       <HelpGuide />
+      <RevealDeck />
       <div className="pointer-events-none fixed top-16 right-3 z-40 flex w-[min(100%-1.5rem,280px)] flex-col gap-2">
         {toasts.map((t) => (
           <button key={t.id} type="button" onClick={() => dismissToast(t.id)} className="pointer-events-auto rounded-[14px] border border-[#3a3a3c]/15 bg-[#d8dce0] px-3 py-2 text-left text-sm">
@@ -247,7 +249,7 @@ function HUD() {
             {nxt ? ` · ${nxt.need} to ${nxt.hint}` : ""}
           </p>
         </button>
-        <span className="rounded-full border border-[#3a3a3c]/20 bg-[#c5ccc8] px-3 py-1 font-mono text-sm text-[#3a3a3c]">{cash} chips</span>
+        <span key={cash} className="chip-bump rounded-full border border-[#3a3a3c]/20 bg-[#c5ccc8] px-3 py-1 font-mono text-sm text-[#3a3a3c]">{cash} chips</span>
         <span className="rounded-full border border-[#3a3a3c]/20 bg-[#c5ccc8] px-3 py-1 font-mono text-sm text-[#3a3a3c]">Feed {feeders}</span>
         <span className="rounded-full border border-[#3a3a3c]/20 bg-[#c5ccc8] px-3 py-1 font-mono text-sm text-[#3a3a3c]">Stock {shopSpiders(colony).length}</span>
         {dueN ? <span className="rounded-full border border-[#c47858]/40 bg-[#f3e0e4] px-3 py-1 font-mono text-sm">{dueN} due</span> : null}
