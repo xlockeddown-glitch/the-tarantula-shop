@@ -1821,6 +1821,13 @@ export const useGame = create<GameState>((set, get) => ({
     if (!s.colony.length) return;
     const snap = goalSnapshot(s);
     const g = s.goal;
+    if (g && isDone(g, snap) && g.resume) {
+      // Interruption handled: bring the earlier goal back, unless it ran out meanwhile.
+      const back = g.resume;
+      set({ goal: isLapsed(back, snap) ? pickGoal(snap, s.goalsDone, back.kind) : back });
+      persist({ ...get() });
+      return;
+    }
     if (g && isDone(g, snap)) {
       const r = g.reward;
       const after = { ...snap, cash: snap.cash + r.chips, feeders: snap.feeders + (r.feeders ?? 0) };
@@ -1830,7 +1837,11 @@ export const useGame = create<GameState>((set, get) => ({
         goalsDone: s.goalsDone + 1,
         goal: pickGoal(after, s.goalsDone + 1, g.kind),
       });
-      get().toast(`Goal done · +${r.chips} chips${r.feeders ? ` · +${r.feeders} crickets` : ""}`);
+      get().toast(
+        r.chips || r.feeders
+          ? `Goal done · +${r.chips} chips${r.feeders ? ` · +${r.feeders} crickets` : ""}`
+          : "Goal done.",
+      );
       persist({ ...get() });
       return;
     }
@@ -1839,7 +1850,8 @@ export const useGame = create<GameState>((set, get) => ({
     if (g && g.kind !== "window" && emptyWindow) {
       const next = pickGoal(snap, s.goalsDone);
       if (next?.kind === "window") {
-        set({ goal: next });
+        // No reward: otherwise unlisting and relisting farms chips.
+        set({ goal: { ...next, reward: { chips: 0 }, resume: g } });
         persist({ ...get() });
         return;
       }

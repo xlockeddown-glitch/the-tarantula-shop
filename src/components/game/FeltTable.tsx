@@ -203,7 +203,7 @@ function TrailFindFace({
     find.kind === "sling" && spec
       ? `${spec.common} · ${spec.latin}. On the rack until it molts.`
       : find.kind === "silk"
-        ? "That's the walk for today."
+        ? "Stuck here this draw. Keep going."
         : find.kind === "full"
           ? `${find.space} had something — no room for another sling.`
           : `${find.space}. Nothing under the felt.`;

@@ -21,6 +21,8 @@ export type Goal = {
   reward: { chips: number; feeders?: number };
   /** Order id for "order" goals. */
   ref?: string;
+  /** The goal this one interrupted; it comes back when this is done. */
+  resume?: Goal;
 };
 
 /** Everything goals need from the save, flattened. */

@@ -50,7 +50,8 @@ export function GoalStrip() {
         <span className="block truncate text-sm leading-tight">{goal.text}</span>
         <span className="block font-mono text-[10px] uppercase text-[#d8dce0]/90">
           {goal.n > 1 ? `${done}/${goal.n} · ` : ""}
-          {goal.dueDay <= day ? "today" : `by day ${goal.dueDay}`} · +{goal.reward.chips} chips
+          {goal.dueDay <= day ? "today" : `by day ${goal.dueDay}`}
+          {goal.reward.chips ? ` · +${goal.reward.chips} chips` : ""}
           {goal.reward.feeders ? ` · +${goal.reward.feeders} crickets` : ""}
         </span>
       </button>
