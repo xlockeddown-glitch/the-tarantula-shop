@@ -31,7 +31,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Tanks",
-    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed.",
+    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed. Slings eat every 2 days, juveniles every 4, adults about weekly; between feeds they're just not hungry.",
   },
   {
     title: "Goals",
@@ -47,7 +47,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Elizabeth",
-    body: "Hire after extra glass and two hatches (35 chips). Fill the window, then tap Elizabeth has the till. She sells listed stock, skips defensive / old-world stock unless the guest is a keeper, tends jars, and leaves a slip in Notes. That locks Open for the day and unlocks the Trail.",
+    body: "Hire after extra glass and your first hatch (35 chips). Fill the window, then tap Elizabeth has the till. She sells listed stock, skips defensive / old-world stock unless the guest is a keeper, tends jars, and leaves a slip in Notes. That locks Open for the day and unlocks the Trail.",
   },
   {
     title: "Felt trail",
@@ -63,7 +63,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Upgrades",
-    body: "Overnight glass: 6 panes. Back counter: 10 panes. (Elizabeth can hire after Overnight glass + two hatches.) Second address: 18 panes and warehouse racks (72 slings / 36 juveniles / 18 adults). Guest line grows slower (3 → 7).",
+    body: "Overnight glass: 6 panes. Back counter: 10 panes. (Elizabeth can hire after Overnight glass + one hatch.) Second address: 18 panes and warehouse racks (72 slings / 36 juveniles / 18 adults). Guest line grows slower (3 → 7).",
   },
 ];
 

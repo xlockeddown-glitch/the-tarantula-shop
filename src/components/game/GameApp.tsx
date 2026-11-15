@@ -44,9 +44,16 @@ import {
   soldToday,
   spiderById,
   STAGE_LABEL,
-  TANK_COST,
 } from "@/lib/game/spiders";
-import { useGame, wholesaleToday, type GameView } from "@/lib/game/store";
+import {
+  lotPayout,
+  lotSellable,
+  lotUnit,
+  useGame,
+  wholesaleQuote,
+  wholesaleToday,
+  type GameView,
+} from "@/lib/game/store";
 import { GAME_VERSION } from "@/lib/game/version";
 import { cn } from "@/lib/utils";
 
@@ -609,7 +616,7 @@ function LoftView() {
               variant="secondary"
               className="rounded-full"
               onClick={hireElizabeth}
-              disabled={shopTier < 1 || stats.hatches < 2 || cash < 35}
+              disabled={shopTier < 1 || stats.hatches < 1 || cash < 35}
             >
               Hire Elizabeth · 35
             </Button>
@@ -749,8 +756,9 @@ function WholesaleView() {
   const profit = useGame((s) => s.profit);
   const inbound = useGame((s) => s.inbound);
   const colony = useGame((s) => s.colony);
+  const orders = useGame((s) => s.orders);
   const gone = soldToday(day);
-  const stock = wholesaleToday(day, profit);
+  const stock = wholesaleToday(day, profit, orders);
   return (
     <div className="space-y-4">
       <h2 className="font-display text-2xl">Truck</h2>
@@ -769,11 +777,9 @@ function WholesaleView() {
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {stock.map((s) => {
-          const lotCost = (Math.round(s.price * 0.5) + TANK_COST.sling) * 3;
-          const lotPay = Math.round(s.price * 0.45) * 3;
-          const slingCount = shopSpiders(colony).filter(
-            (c) => c.speciesId === s.id && c.stage === "sling" && !c.inBreed,
-          ).length;
+          const lotCost = lotUnit(s) * 3;
+          const lotPay = lotPayout(s);
+          const slingCount = lotSellable(colony, s.id).length;
           return (
             <article
               key={s.id}
@@ -794,10 +800,10 @@ function WholesaleView() {
                       disabled={gone === s.id}
                       onClick={() => buy(s.id, "sling")}
                     >
-                      Sling {Math.round(s.price * 0.62) + TANK_COST.sling}
+                      Sling {wholesaleQuote(s, "sling")}
                     </Button>
                     <Button size="sm" className="rounded-full" onClick={() => buy(s.id, "juvenile")}>
-                      Juv {Math.round(s.price * 0.9) + TANK_COST.juvenile}
+                      Juv {wholesaleQuote(s, "juvenile")}
                     </Button>
                     <Button
                       size="sm"

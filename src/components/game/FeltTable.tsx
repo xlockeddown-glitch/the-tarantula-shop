@@ -46,7 +46,7 @@ function groupStacks(list: OwnedSpider[]) {
   return [...m.values()];
 }
 
-function LookButton({ id, label }: { id: string; label: string }) {
+function LookButton({ id, label, small }: { id: string; label: string; small?: boolean }) {
   const openTank = useGame((s) => s.openTank);
   return (
     <button
@@ -57,9 +57,9 @@ function LookButton({ id, label }: { id: string; label: string }) {
       }}
       aria-label={`Look at ${label}`}
       title="Look in the tank"
-      className="before:absolute before:-inset-1.5 before:content-[''] absolute top-1 left-1 z-20 flex size-9 items-center justify-center rounded-full border-2 border-[#efe6d8] bg-[#3a3a3c]/90 text-[#efe6d8] shadow-[0_2px_0_#8a8680] active:scale-95"
+      className={`absolute top-1 left-1 z-20 flex items-center justify-center rounded-full border-2 border-[#efe6d8] bg-[#3a3a3c]/90 text-[#efe6d8] shadow-[0_2px_0_#8a8680] active:scale-95 ${small ? "size-7" : "size-9 before:absolute before:-inset-1.5 before:content-['']"}`}
     >
-      <Eye className="size-4" />
+      <Eye className={small ? "size-3.5" : "size-4"} />
     </button>
   );
 }
@@ -70,7 +70,7 @@ function ChipStack({ spiders, onTop }: { spiders: OwnedSpider[]; onTop: (id: str
   const n = spiders.length;
   return (
     <div className="relative">
-      <LookButton id={top.id} label={spiderById(top.speciesId)?.common ?? "it"} />
+      <LookButton small id={top.id} label={spiderById(top.speciesId)?.common ?? "it"} />
       <button type="button" className="relative" onClick={() => onTop(top.id)}>
         {n > 1 ? (
           <span className="absolute top-1 left-1 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#d8cfc0] shadow-[0_8px_0_#8a8680]" />

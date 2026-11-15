@@ -15,9 +15,16 @@ export function needsMist(spec: SpiderSpecies) {
 }
 
 export function feedWindow(stage: SpiderStage): { every: number; late: number } {
-  if (stage === "sling") return { every: 4, late: 5 };
-  if (stage === "juvenile") return { every: 2, late: 3 };
-  return { every: 1, late: 2 };
+  if (stage === "sling") return { every: 2, late: 4 };
+  if (stage === "juvenile") return { every: 4, late: 6 };
+  return { every: 7, late: 10 };
+}
+
+export const WATER_WINDOW = { due: 3, late: 5 } as const;
+
+export function mistWindow(spec: SpiderSpecies): { due: number; late: number } {
+  if (spec.humidity === "slight") return { due: 3, late: 5 };
+  return { due: 2, late: 4 };
 }
 
 export function daysSince(last: number | undefined, day: number) {
@@ -33,8 +40,8 @@ export function careDue(sp: OwnedSpider, spec: SpiderSpecies, day: number): Care
   const due: CareKind[] = [];
   const feed = feedWindow(sp.stage);
   if (!offFood(sp, day) && daysSince(sp.fedDay, day) >= feed.every) due.push("feed");
-  if (needsWaterBowl(spec) && daysSince(sp.waterDay, day) >= 1) due.push("water");
-  if (needsMist(spec) && daysSince(sp.mistDay, day) >= 1) due.push("mist");
+  if (needsWaterBowl(spec) && daysSince(sp.waterDay, day) >= WATER_WINDOW.due) due.push("water");
+  if (needsMist(spec) && daysSince(sp.mistDay, day) >= mistWindow(spec).due) due.push("mist");
   if (daysSince(sp.cleanDay, day) >= CLEAN_EVERY) due.push("clean");
   return due;
 }
@@ -43,8 +50,8 @@ export function careLate(sp: OwnedSpider, spec: SpiderSpecies, day: number): Car
   const late: CareKind[] = [];
   const feed = feedWindow(sp.stage);
   if (!offFood(sp, day) && daysSince(sp.fedDay, day) >= feed.late) late.push("feed");
-  if (needsWaterBowl(spec) && daysSince(sp.waterDay, day) >= 2) late.push("water");
-  if (needsMist(spec) && daysSince(sp.mistDay, day) >= 2) late.push("mist");
+  if (needsWaterBowl(spec) && daysSince(sp.waterDay, day) >= WATER_WINDOW.late) late.push("water");
+  if (needsMist(spec) && daysSince(sp.mistDay, day) >= mistWindow(spec).late) late.push("mist");
   if (daysSince(sp.cleanDay, day) >= CLEAN_EVERY + 5) late.push("clean");
   return late;
 }

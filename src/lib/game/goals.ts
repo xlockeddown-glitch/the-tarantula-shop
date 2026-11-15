@@ -129,7 +129,7 @@ function make(
         reward: { chips: 4, feeders: 4 },
       };
     case "truck":
-      if (snap.cash < 30) return null;
+      if (snap.cash < 8) return null;
       return {
         id,
         kind,
@@ -137,7 +137,7 @@ function make(
         n: 1,
         dueDay: snap.day + 1,
         text: "Buy new stock off the Truck",
-        reward: { chips: 10 },
+        reward: { chips: 4 },
       };
     case "window": {
       const n = Math.min(snap.windowCap, snap.sellable);

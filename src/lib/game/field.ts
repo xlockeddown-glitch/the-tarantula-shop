@@ -207,7 +207,7 @@ export function forageLabel(speciesId: string) {
 export function cardBlurb(card: TrailCard, from: number) {
   const hop = hopPawn(from, card);
   const dest = PATH[hop.to]!;
-  if (card.kind === "silk") return "Sticky silk. Stuck — that's the walk for today.";
+  if (card.kind === "silk") return "Sticky silk. Stuck here this draw — keep going.";
   if (card.kind === "print") {
     return hop.to === from
       ? "Pink print — hunt the rare square right here."

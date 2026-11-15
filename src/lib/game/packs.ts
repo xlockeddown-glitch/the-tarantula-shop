@@ -1,3 +1,4 @@
+import { feedWindow } from "./care";
 import { STARTER_IDS } from "./progress";
 import { makeSling, spiderById, type OwnedSpider, type SpiderSex, type SpiderStage } from "./spiders";
 
@@ -49,7 +50,7 @@ export function packToColony(pack: StarterPack): OwnedSpider[] {
       listed: canList,
       enclosureScore: 8,
       // Off the truck hungry, so there's something to do in the tank on day one.
-      fedDay: 0,
+      fedDay: 1 - feedWindow(line.stage).every,
     };
   });
 }

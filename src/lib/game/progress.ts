@@ -177,8 +177,8 @@ export const LOFT_UPGRADES: LoftUpgrade[] = [
     from: 0,
     label: "Overnight glass",
     cost: 40,
-    need: { sales: 1, cleanNights: 1, hatches: 2, goodBuilds: 0 },
-    blurb: "After two good hatches (and a sale), wake up to six window panes.",
+    need: { sales: 6, cleanNights: 5, hatches: 1, goodBuilds: 0 },
+    blurb: "After a good hatch, six sales and five clean nights, wake up to six window panes.",
   },
   {
     from: 1,
