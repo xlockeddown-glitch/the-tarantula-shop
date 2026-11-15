@@ -556,6 +556,8 @@ export function migrateOwned(raw: Partial<OwnedSpider>, day: number, serial: num
     breedRestUntil: raw.breedRestUntil,
     spentUntil: raw.spentUntil,
     wild: !!raw.wild,
+    moltDay: raw.moltDay,
+    listedDay: raw.listedDay,
   };
 }
 

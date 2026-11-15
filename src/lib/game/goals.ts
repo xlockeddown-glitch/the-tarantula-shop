@@ -41,6 +41,8 @@ export type GoalSnapshot = {
   hungry: number;
   /** Open requests with nothing in stock to fill them. */
   openOrders: { id: string; text: string; dueDay: number }[];
+  /** Shop is open now, or the sign hasn't been flipped yet today. */
+  canOpenToday: boolean;
 };
 
 export function counter(snap: GoalSnapshot, kind: GoalKind): number {
@@ -71,6 +73,7 @@ export function isDone(goal: Goal, snap: GoalSnapshot): boolean {
 
 export function isLapsed(goal: Goal, snap: GoalSnapshot): boolean {
   if (snap.day > goal.dueDay) return true;
+  if (goal.kind === "handfeed" && !isDone(goal, snap) && (snap.hungry === 0 || snap.feeders === 0)) return true;
   return (
     goal.kind === "order" &&
     !!goal.ref &&
@@ -90,6 +93,7 @@ function make(
   switch (kind) {
     case "sell": {
       // Only what's in the window can sell today. First goal stays small.
+      if (!snap.canOpenToday) return null;
       const n = Math.min(seq <= 1 ? 2 : 3, snap.listed);
       if (n < 1) return null;
       return {

@@ -75,17 +75,19 @@ function unlockTrack(list: string[] | undefined, id: string, ready: boolean) {
   return { list: next, unlocked };
 }
 
-function sexStarterPair(colony: OwnedSpider[]): OwnedSpider[] {
-  const adults = colony.filter((c) => c.stage === "adult" && !c.personal);
-  if (adults.length < 2) return colony;
-  const speciesId = adults[0]!.speciesId;
-  const pair = adults.filter((c) => c.speciesId === speciesId).slice(0, 2);
-  if (pair.length < 2) return colony;
-  return colony.map((c) => {
-    if (c.id === pair[0]!.id) return { ...c, sex: "f" as const };
-    if (c.id === pair[1]!.id) return { ...c, sex: "m" as const };
-    return c;
-  });
+function tallySale(
+  soldCounts: Record<string, number>,
+  feltSales: string[],
+  feltAlbum: string[],
+  speciesId: string,
+) {
+  const counts = { ...soldCounts, [speciesId]: (soldCounts[speciesId] ?? 0) + 1 };
+  const sale = unlockTrack(feltSales, speciesId, (counts[speciesId] ?? 0) >= 3);
+  return {
+    soldCounts: counts,
+    feltSales: sale.list,
+    feltAlbum: sale.unlocked ? [...new Set([...feltAlbum, speciesId])] : feltAlbum,
+  };
 }
 
 function persist(s: GameState): boolean {
@@ -206,6 +208,7 @@ export function goalSnapshot(s: GameState): GoalSnapshot {
     listed: sellable.filter((c) => c.listed).length,
     windowCap: windowSlots(s.shopTier),
     sellable: sellable.length,
+    canOpenToday: s.shopMode === "open" || s.openedDay !== s.day,
     hungry: s.colony.filter((c) => {
       const spec = spiderById(c.speciesId);
       return !c.personal && spec ? careDue(c, spec, s.day).includes("feed") : false;
@@ -406,9 +409,12 @@ export const useGame = create<GameState>((set, get) => ({
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<GameState>;
       const day = parsed.day ?? 1;
-      const colony = sexStarterPair(
-        ((parsed.colony as OwnedSpider[] | undefined) ?? []).map((c, i) => migrateOwned({ ...c, wild: (c as OwnedSpider).wild }, day, i + 1)),
-      );
+      const colony = ((parsed.colony as OwnedSpider[] | undefined) ?? []).map((c, i) => {
+        const m = migrateOwned({ ...c, wild: (c as OwnedSpider).wild }, day, i + 1);
+        const spec = spiderById(m.speciesId);
+        if (spec && spec.ow && m.enclosureScore < passScore(spec)) return { ...m, enclosureScore: passScore(spec) };
+        return m;
+      });
       set({
         ...blank(),
         ...parsed,
@@ -541,6 +547,10 @@ export const useGame = create<GameState>((set, get) => ({
     let colony = s.colony;
     let deals = s.dealsToday;
     let stats = s.stats;
+    let profit = s.profit;
+    let soldCounts = { ...s.soldCounts };
+    let feltSales = s.feltSales ?? [];
+    let feltAlbum = s.feltAlbum ?? [];
     if (s.elizabethHired) {
       for (const cust of s.customers) {
         if (served.includes(cust.id)) continue;
@@ -549,12 +559,14 @@ export const useGame = create<GameState>((set, get) => ({
             ? shopSpiders(colony).filter((c) => c.listed)
             : listedMatches(colony, cust.want);
         const pick = matches[0];
-        if (!pick) continue;
+        if (!pick || sheWontSell(cust, pick)) continue;
         colony = colony.filter((c) => c.id !== pick.id);
         cash += cust.offer;
+        profit += cust.offer;
         deals += 1;
         served.push(cust.id);
         stats = { ...stats, sales: stats.sales + 1 };
+        ({ soldCounts, feltSales, feltAlbum } = tallySale(soldCounts, feltSales, feltAlbum, pick.speciesId));
       }
     }
     const leftovers = s.customers.filter((c) => !served.includes(c.id));
@@ -575,8 +587,12 @@ export const useGame = create<GameState>((set, get) => ({
       returning: book,
       colony,
       cash,
+      profit,
       feeders,
       dealsToday: deals,
+      soldCounts,
+      feltSales,
+      feltAlbum,
       stats,
       served,
       view: "world",
@@ -1143,7 +1159,7 @@ export const useGame = create<GameState>((set, get) => ({
     }
     const caps = shopCaps(s.shopTier, s.slingShelves);
     const room = caps.sling - countStage(s.colony, "sling");
-    const n = Math.max(1, Math.min(clutch.expect, Math.max(0, room)));
+    const n = Math.min(clutch.expect, Math.max(0, room));
     if (n < 1) {
       get().toast("Sling cups are full. Sell or expand first.");
       return;
@@ -1152,7 +1168,7 @@ export const useGame = create<GameState>((set, get) => ({
     let colony = s.colony.map((c) => (c.id === femaleId ? { ...c, inBreed: false } : c));
     for (let i = 0; i < n; i++) {
       const sl = makeSling(clutch.speciesId, s.day, "sling", serial);
-      colony = [...colony, { ...sl, enclosureScore: 6 }];
+      colony = [...colony, { ...sl, enclosureScore: spec ? Math.max(6, passScore(spec)) : 6 }];
       serial += 1;
     }
     const counts = { ...s.breedCounts };
@@ -1294,10 +1310,7 @@ export const useGame = create<GameState>((set, get) => ({
       deals += 1;
       sold += 1;
       stats = { ...stats, sales: stats.sales + 1 };
-      soldCounts[pick.speciesId] = (soldCounts[pick.speciesId] ?? 0) + 1;
-      const sale = unlockTrack(feltSales, pick.speciesId, (soldCounts[pick.speciesId] ?? 0) >= 3);
-      feltSales = sale.list;
-      if (sale.unlocked) feltAlbum = [...new Set([...feltAlbum, pick.speciesId])];
+      ({ soldCounts, feltSales, feltAlbum } = tallySale(soldCounts, feltSales, feltAlbum, pick.speciesId));
     }
     colony = colony.filter((c) => !taken.has(c.id));
     const leftoverGuests = customers.filter((c) => !soldCust.has(c.id));
@@ -1653,8 +1666,8 @@ export const useGame = create<GameState>((set, get) => ({
       cash += 25;
       notes.push({ id: nid("j"), day: s.day, title: "A neighbor", body: "Slipped 25 chips under the door." });
     }
-    const late = s.orders.filter((o) => o.dueDay < s.day);
-    const keepOrders = s.orders.filter((o) => o.dueDay >= s.day);
+    const late = s.orders.filter((o) => o.dueDay <= s.day);
+    const keepOrders = s.orders.filter((o) => o.dueDay > s.day);
     if (late.length) {
       notes.push({
         id: nid("j"),
@@ -1687,7 +1700,7 @@ export const useGame = create<GameState>((set, get) => ({
       const spec = spiderById(t.speciesId);
       for (let i = 0; i < n; i++) {
         const sl = makeSling(t.speciesId, nextDay, "sling", serial);
-        colony = [...colony, { ...sl, enclosureScore: 6 }];
+        colony = [...colony, { ...sl, enclosureScore: spec ? Math.max(6, passScore(spec)) : 6 }];
         serial += 1;
       }
       cards.push({ kind: "truck", id: nid("r"), speciesId: t.speciesId, n });

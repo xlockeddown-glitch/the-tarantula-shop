@@ -113,8 +113,9 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
       while (w.events.length) {
         const e = w.events.shift();
         if (e === "ate") {
+          const hadFeeder = useGame.getState().feeders >= 1;
           tend(sp.id, "feed");
-          noteHandFeed();
+          if (hadFeeder) noteHandFeed();
         }
       }
       setCaption((c) => (c === w.caption ? c : w.caption));
