@@ -259,11 +259,11 @@ export function TankView() {
       <div className="mx-auto max-w-[520px]">
         <div className="mb-3 flex items-start justify-between gap-3 text-[#efe6d8]">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#d8dce0]/75">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#d8dce0]/90">
               {sp.tag} · {STAGE_LABEL[sp.stage]} · <SexMark sex={sp.sex} /> · worth {fairAsk(sp)}
             </p>
             <h2 className="font-display truncate text-2xl leading-tight">{spec.common}</h2>
-            <p className="text-xs italic text-[#d8dce0]/80">
+            <p className="text-xs italic text-[#d8dce0]/90">
               {spec.latin} · {spec.temper} · {spec.life}
             </p>
           </div>
@@ -278,7 +278,7 @@ export function TankView() {
           </Button>
         </div>
         <Tank key={sp.id} sp={sp} spec={spec} />
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/80">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/90">
           <span>{fed === 0 ? "Fed today" : `Fed ${fed}d ago`}</span>
           {premolt ? <span className="text-[#e8a0b8]">Premolt · molts tonight</span> : null}
           {freshMolt ? (
@@ -295,7 +295,7 @@ export function TankView() {
             </Button>
           ) : null}
         </div>
-        <p className="mt-3 text-center text-xs text-[#d8dce0]/60">
+        <p className="mt-3 text-center text-xs text-[#d8dce0]/90">
           Tap the tarantula to poke it. Tap the substrate and it'll turn toward the vibration.
         </p>
       </div>

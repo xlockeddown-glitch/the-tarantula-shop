@@ -241,7 +241,7 @@ function Card({
         className={`flip-inner block size-full ${flipped ? "is-flipped" : ""}`}
         onClick={onFlip}
         disabled={flipped}
-        aria-label={flipped ? `${spec?.common ?? "Card"} revealed` : backHint(card)}
+        aria-label={flipped ? undefined : backHint(card)}
       >
         <div
           aria-hidden={flipped}
@@ -310,22 +310,33 @@ export function RevealDeck() {
   const [seen, setSeen] = useState(0);
   const [flippedId, setFlippedId] = useState<string | null>(null);
   const top = reveals[0];
+  const flipped = top ? !wantsFlip(top) || flippedId === top.id : false;
   useEffect(() => {
     if (!top) setSeen(0);
   }, [top]);
+  useEffect(() => {
+    if (!top || !flipped) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && clear();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [top, flipped, clear]);
   if (!top) return null;
-  const flipped = !wantsFlip(top) || flippedId === top.id;
   const total = seen + reveals.length;
   const last = reveals.length === 1;
   const isMorning = !!morning && top.kind !== "sac" && top.kind !== "collapse";
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 overflow-y-auto bg-[#2e3432]/88 px-4 py-6 backdrop-blur-[2px]">
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 overflow-y-auto bg-[#2e3432]/88 px-4 py-6 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label={isMorning ? `Morning, Day ${morning!.day}` : "On the bench"}
+    >
       <div className="text-center text-[#efe6d8]">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#d8dce0]/80">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#d8dce0]/90">
           {isMorning ? `Morning · Day ${morning!.day}` : "On the bench"} · {seen + 1} of {total}
         </p>
         {isMorning && seen === 0 ? (
-          <p className="mt-1 font-mono text-xs text-[#d8dce0]/70">
+          <p className="mt-1 font-mono text-xs text-[#d8dce0]/90">
             {morning!.rent
               ? `Rent −${morning!.rent}`
               : morning!.day <= 3
