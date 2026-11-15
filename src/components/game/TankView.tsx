@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { careDue, daysSince, needsMist, needsWaterBowl } from "@/lib/game/care";
 import { paintOf } from "@/lib/game/look";
 import {
+  adoptBlockReason,
   isPremolt,
   STAGE_LABEL,
   spiderById,
@@ -227,6 +228,59 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   );
 }
 
+function PetAdoption({ sp }: { sp: OwnedSpider }) {
+  const colony = useGame((s) => s.colony);
+  const adoptPet = useGame((s) => s.adoptPet);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  if (sp.personal || adoptBlockReason(colony, sp.id) !== null) return null;
+  return (
+    <div className="mt-3 text-center">
+      {open ? (
+        <div className="rounded-[14px] bg-[#efe6d8] p-3 text-[#3a3a3c]">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={20}
+            placeholder="Name it"
+            aria-label="Shop pet name"
+            autoFocus
+            className="h-11 w-full rounded-full border border-[#3a3a3c]/25 bg-[#f4eee6] px-4 text-base outline-none focus:border-[#5aa8a0]"
+          />
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            {["Miso", "Pip", "Velvet", "Biscuit"].map((chip) => (
+              <Button
+                key={chip}
+                size="sm"
+                variant="secondary"
+                className="rounded-full"
+                onClick={() => setName(chip)}
+              >
+                {chip}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-[#6a6560]">
+            Not for sale after this. You'd give up about {fairAsk(sp)} chips.
+          </p>
+          <div className="mt-3 flex justify-center gap-2">
+            <Button size="sm" className="rounded-full" onClick={() => adoptPet(sp.id, name)}>
+              Keep
+            </Button>
+            <Button size="sm" variant="ghost" className="rounded-full" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setOpen(true)}>
+          Keep as shop pet
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function TankView() {
   const tankId = useGame((s) => s.tankId);
   const colony = useGame((s) => s.colony);
@@ -263,7 +317,11 @@ export function TankView() {
         <div className="mb-3 flex items-start justify-between gap-3 text-[#efe6d8]">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#d8dce0]/90">
-              {sp.tag} · {STAGE_LABEL[sp.stage]} · <SexMark sex={sp.sex} /> · worth {fairAsk(sp)}
+              {sp.personal ? (
+                <>{sp.name} · Shop pet</>
+              ) : (
+                <>{sp.tag} · {STAGE_LABEL[sp.stage]} · <SexMark sex={sp.sex} /> · worth {fairAsk(sp)}</>
+              )}
             </p>
             <h2 className="font-display truncate text-2xl leading-tight">{spec.common}</h2>
             <p className="text-xs italic text-[#d8dce0]/90">
@@ -281,13 +339,16 @@ export function TankView() {
           </Button>
         </div>
         <Tank key={sp.id} sp={sp} spec={spec} />
+        <PetAdoption key={`pet-${sp.id}`} sp={sp} />
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/90">
           <span>{fed === 0 ? "Fed today" : careDue(sp, spec, day).includes("feed") ? "Hungry" : `Fed ${fed}d ago`}</span>
           {premolt ? <span className="text-[#e8a0b8]">Premolt · molts tonight</span> : null}
           {freshMolt ? (
             <span className="text-[#e8a0b8]">Molted last night · skin's in the tank</span>
           ) : null}
-          {!sp.wild && !sp.inBreed ? (
+          {sp.personal ? (
+            <span>Not for sale</span>
+          ) : !sp.wild && !sp.inBreed ? (
             <Button
               size="sm"
               variant="ghost"

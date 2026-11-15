@@ -669,6 +669,19 @@ export function FeltTable() {
   const clutches = useGame((s) => s.clutches);
   const collectClutch = useGame((s) => s.collectClutch);
   const leaveField = useGame((s) => s.leaveField);
+  const openTank = useGame((s) => s.openTank);
+  const sales = useGame((s) => s.stats.sales);
+  const pet = colony.find((c) => c.personal);
+  const petSpec = pet ? spiderById(pet.speciesId) : null;
+  const petStatus = pet && petSpec
+    ? careDue(pet, petSpec, day).includes("feed")
+      ? "Hungry"
+      : isPremolt(pet)
+        ? "Premolt"
+        : pet.moltDay === day
+          ? "Fresh molt"
+          : "Content"
+    : "";
 
   const windows = windowSlots(shopTier);
   const listedSpiders = colony.filter((c) => c.listed && !c.personal);
@@ -836,6 +849,34 @@ export function FeltTable() {
           ) : null}
 
           {coachBeat < 4 ? <CoachCard beat={coachBeat} onSkip={skipCoach} /> : null}
+
+          {pet && petSpec ? (
+            <button
+              type="button"
+              onClick={() => openTank(pet.id)}
+              className="mb-4 flex w-full items-center gap-3 rounded-[14px] bg-[#efe6d8]/70 p-3 text-left"
+            >
+              <img
+                src={portraitFor(petSpec, pet.stage)}
+                alt=""
+                className="size-12 shrink-0 rounded-[10px] bg-[#efe6d8] object-contain"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+                  Shop pet
+                </p>
+                <p className="truncate font-display text-lg text-[#3a3a3c]">{pet.name}</p>
+                <p className="font-mono text-[10px] uppercase text-[#6a6560]">
+                  {pet.stage} · <SexMark sex={pet.sex} />
+                </p>
+              </div>
+              <span className="shrink-0 text-sm text-[#6a6560]">{petStatus}</span>
+            </button>
+          ) : !pet && sales >= 1 ? (
+            <p className="mb-4 text-xs text-[#6a6560]">
+              Pick a shop pet: open any tank and tap Keep as shop pet.
+            </p>
+          ) : null}
 
           {shopMode === "open" ? (
             <section className="mb-4 rounded-[14px] bg-[#efe6d8]/70 p-3">

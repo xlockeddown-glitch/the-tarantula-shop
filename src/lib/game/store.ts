@@ -27,6 +27,7 @@ import {
 } from "./progress";
 import { bookDepartures, pullDue, toFloorCustomer } from "./returns";
 import {
+  adoptBlockReason,
   clutchNights,
   countStage,
   fairAsk,
@@ -316,6 +317,7 @@ export type GameState = {
   listSpider: (id: string, listed: boolean) => void;
   dumpListed: (id: string) => void;
   nameSpider: (id: string, name: string) => void;
+  adoptPet: (id: string, name: string) => void;
   buyWholesale: (speciesId: string, stage: SpiderStage) => void;
   buyFeeders: () => void;
   buyFeederCrate: () => void;
@@ -358,7 +360,7 @@ const blank = (): Omit<
   GameState,
   | "hydrate" | "startNew" | "reset" | "choosePack" | "setView" | "toast" | "dismissToast"
   | "openShop" | "closeShop" | "talkTo" | "tend" | "feed" | "careAll" | "careRack"
-  | "listSpider" | "dumpListed" | "nameSpider" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
+  | "listSpider" | "dumpListed" | "nameSpider" | "adoptPet" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
   | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
   | "serveCustomer" | "refuseCustomer" | "bookGuest" | "fillOrder" | "startBreed" | "collectClutch"
   | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
@@ -660,7 +662,7 @@ export const useGame = create<GameState>((set, get) => ({
   tend: (id, kind) => {
     const s = get();
     const sp = s.colony.find((c) => c.id === id);
-    if (!sp || sp.personal) return;
+    if (!sp) return;
     const spec = spiderById(sp.speciesId);
     if (!spec) return;
     if (kind === "water" && !needsWaterBowl(spec)) {
@@ -756,6 +758,34 @@ export const useGame = create<GameState>((set, get) => ({
       stats: { ...s.stats, sales: s.stats.sales + 1 },
     });
     get().toast(`Truck took it for ${pay}. Pane is free.`);
+    persist({ ...get() });
+  },
+
+  adoptPet: (id, name) => {
+    const s = get();
+    name = name.trim();
+    if (name.length < 1 || name.length > 20) {
+      get().toast("Give it a name.");
+      return;
+    }
+    const reason = adoptBlockReason(s.colony, id);
+    if (reason) {
+      get().toast(reason);
+      return;
+    }
+    set({
+      colony: s.colony.map((c) => (c.id === id ? { ...c, personal: true, listed: false, name } : c)),
+      journal: [
+        {
+          id: nid("j"),
+          day: s.day,
+          title: `${name} stays`,
+          body: "Not for sale. The shop's own.",
+        },
+        ...s.journal,
+      ].slice(0, 40),
+    });
+    get().toast(`${name} is the shop pet now.`);
     persist({ ...get() });
   },
 
@@ -1614,20 +1644,19 @@ export const useGame = create<GameState>((set, get) => ({
       const fresh = res.molt ? { ...res.spider, moltDay: s.day + 1 } : res.spider;
       colony = colony.map((c) => (c.id === sp.id ? fresh : c));
       if (res.molt) {
-        if (!sp.personal) {
-          cards.push({
-            kind: "molt",
-            id: nid("r"),
-            speciesId: sp.speciesId,
-            tag: sp.tag,
-            from: sp.stage,
-            to: res.molt,
-            sex: res.spider.sex,
-            sexReveal: sp.sex === "u" && res.spider.sex !== "u",
-            before: fairAsk(sp),
-            after: fairAsk(res.spider),
-          });
-        }
+        cards.push({
+          kind: "molt",
+          id: nid("r"),
+          speciesId: sp.speciesId,
+          tag: sp.tag,
+          name: sp.personal ? sp.name : undefined,
+          from: sp.stage,
+          to: res.molt,
+          sex: res.spider.sex,
+          sexReveal: sp.sex === "u" && res.spider.sex !== "u",
+          before: fairAsk(sp),
+          after: fairAsk(res.spider),
+        });
         notes.push({
           id: nid("j"),
           day: s.day,

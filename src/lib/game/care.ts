@@ -76,7 +76,6 @@ export function applyTendAll(
   let tended = 0;
   let hungry = 0;
   const next = colony.map((c) => {
-    if (c.personal) return c;
     const spec = spiderById(c.speciesId);
     if (!spec) return c;
     const due = careDue(c, spec, day);

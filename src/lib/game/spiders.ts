@@ -324,6 +324,22 @@ export function shopSpiders(colony: OwnedSpider[]) {
   return colony.filter((c) => !c.personal && !c.inBreed);
 }
 
+export function adoptBlockReason(colony: OwnedSpider[], id: string): string | null {
+  const sp = colony.find((c) => c.id === id);
+  if (!sp) return "Animal not found.";
+  if (colony.some((c) => c.personal)) return "You already have a shop pet.";
+  if (sp.personal) return "This animal is already personal.";
+  if (sp.inBreed) return "She's busy breeding.";
+  if (!colony.some((c) => c.id !== id && !c.personal)) return "Keep at least one animal to sell.";
+  if (sp.stage === "adult" && (sp.sex === "f" || sp.sex === "m")) {
+    const adults = colony.filter((c) => !c.personal && c.speciesId === sp.speciesId && c.stage === "adult");
+    const same = adults.filter((c) => c.sex === sp.sex).length;
+    const mate = adults.some((c) => c.sex !== sp.sex && c.sex !== "u");
+    if (same === 1 && mate) return "That's half of your only breeding pair.";
+  }
+  return null;
+}
+
 export function countStage(colony: OwnedSpider[], stage: SpiderStage) {
   return shopSpiders(colony).filter((c) => c.stage === stage).length;
 }
