@@ -7,6 +7,7 @@ export type RevealCard =
       id: string;
       speciesId: string;
       tag: string;
+      name?: string;
       from: SpiderStage;
       to: SpiderStage;
       sex: SpiderSex;

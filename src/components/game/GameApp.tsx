@@ -336,7 +336,6 @@ function HUD() {
   let dueN = 0;
   let hungryN = 0;
   for (const c of colony) {
-    if (c.personal) continue;
     const spec = spiderById(c.speciesId);
     if (!spec) continue;
     const due = careDue(c, spec, day);

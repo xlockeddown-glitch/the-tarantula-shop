@@ -64,7 +64,7 @@ function MoltCanvas({
 
 function backLabel(card: RevealCard) {
   if (card.kind === "sac") return "Egg sac";
-  if (card.kind === "molt") return "Molted overnight";
+  if (card.kind === "molt") return card.name ? `${card.name} molted overnight` : "Molted overnight";
   return "Overnight";
 }
 
@@ -117,6 +117,29 @@ function FaceBody({ card }: { card: RevealCard }) {
   const name = spec?.common ?? card.speciesId;
   switch (card.kind) {
     case "molt": {
+      if (card.name) {
+        const female = card.sex === "f";
+        return (
+          <>
+            {card.sexReveal ? (
+              <>
+                <div
+                  className={`reveal-pop font-display text-7xl leading-none ${female ? "text-[#e890b0]" : "text-[#7eb4e8]"}`}
+                >
+                  {female ? "♀" : "♂"}
+                </div>
+                <p className="mt-2 font-display text-2xl text-[#3a3a3c]">
+                  {card.name} is a {female ? "girl" : "boy"}!
+                </p>
+              </>
+            ) : null}
+            <p className="mt-1 font-display text-2xl text-[#3a3a3c]">
+              {card.name} molted to {STAGE_LABEL[card.to].toLowerCase()}.
+            </p>
+            <p className="mt-1 text-sm text-[#5a5652]">{name} · Shop pet</p>
+          </>
+        );
+      }
       if (card.sexReveal) {
         const female = card.sex === "f";
         return (
@@ -260,7 +283,7 @@ function Card({
                   onDone={() => setPlayed(true)}
                 />
               </div>
-              <p className="mt-2 font-display text-lg text-[#3a3a3c]">{spec?.common}</p>
+              <p className="mt-2 font-display text-lg text-[#3a3a3c]">{card.name || spec?.common}</p>
               <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-[#c47858]">
                 {played ? backHint(card) : "Crawling out of the old skin…"}
               </p>

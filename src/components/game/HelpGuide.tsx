@@ -34,6 +34,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed. Slings eat every 2 days, juveniles every 4, adults about weekly; between feeds they're just not hungry.",
   },
   {
+    title: "Shop pet",
+    body: "Pick one animal to keep for good: open its tank and tap Keep as shop pet, then name it. It's never for sale, never breeds or ships, and it can't die from a missed feed, but it still gets hungry, molts and gets a morning card. It doesn't take shop space.",
+  },
+  {
     title: "Goals",
     body: "The strip under the header always shows one goal, with a chip reward. Tap it to jump to where you'd do it. The first few walk you through selling, hand-feeding, haggling and requests. After that they follow what the shop needs, like restocking when the racks run low. Swap once a day if you don't like one. Missing a goal costs nothing.",
   },
