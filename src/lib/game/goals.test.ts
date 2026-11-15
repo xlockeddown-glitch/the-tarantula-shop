@@ -16,6 +16,7 @@ const snap = (over: Partial<GoalSnapshot> = {}): GoalSnapshot => ({
   sellable: 5,
   hungry: 2,
   openOrders: [{ id: "o1", text: "Get a ♀ Pinktoe for Gin", dueDay: 8 }],
+  canOpenToday: true,
   ...over,
 });
 
@@ -79,4 +80,11 @@ test("never picks a goal that is already complete, and avoids repeating the last
       assert.ok(!isDone(g, s), `${g.kind} done on arrival`);
       assert.notEqual(g.kind, "sell");
     }
+});
+
+test("sell is not offered when the shop can't open today", () => {
+  for (let done = 0; done < 12; done++) {
+    const g = pickGoal(snap({ canOpenToday: false }), done);
+    if (g) assert.notEqual(g.kind, "sell");
+  }
 });

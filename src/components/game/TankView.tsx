@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bug, Droplets, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { careDue, daysSince, needsMist, needsWaterBowl, offFood } from "@/lib/game/care";
+import { careDue, daysSince, needsMist, needsWaterBowl } from "@/lib/game/care";
 import { paintOf } from "@/lib/game/look";
 import {
   isPremolt,
@@ -43,6 +43,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   const watered = sp.waterDay === day;
   const misted = sp.mistDay === day;
   const grimy = careDue(sp, spec, day).includes("clean");
+  const hungry = careDue(sp, spec, day).includes("feed");
   const [caption, setCaption] = useState("");
   const [hasCricket, setHasCricket] = useState(false);
   const [eating, setEating] = useState(false);
@@ -68,7 +69,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
       temper: spec.temper,
       stage: sp.stage,
       hasDish,
-      hungry: !fedToday && !offFood(sp, day),
+      hungry,
       premolt,
       seed: hashSeedText(sp.id),
     });
@@ -79,10 +80,10 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   // Keep world flags in step with the save.
   useEffect(() => {
     const w = worldRef.current!;
-    w.hungry = !fedToday && !premolt && !freshMolt;
+    w.hungry = hungry;
     w.premolt = premolt;
     look.current.premolt = premolt;
-  }, [fedToday, premolt, freshMolt, grimy]);
+  }, [hungry, fedToday, premolt, freshMolt, grimy]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -113,8 +114,9 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
       while (w.events.length) {
         const e = w.events.shift();
         if (e === "ate") {
+          const hadFeeder = useGame.getState().feeders >= 1;
           tend(sp.id, "feed");
-          noteHandFeed();
+          if (hadFeeder) noteHandFeed();
         }
       }
       setCaption((c) => (c === w.caption ? c : w.caption));
@@ -145,7 +147,9 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
       ? "Fed today"
       : feeders < 1
         ? "Bin empty"
-        : `Drop a cricket · ${feeders}`;
+        : !hungry && !premolt
+          ? "Not hungry yet"
+          : `Drop a cricket · ${feeders}`;
 
   return (
     <>
@@ -177,7 +181,7 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
           <Button
             size="sm"
             className="rounded-full"
-            disabled={freshMolt || fedToday || feeders < 1 || eating}
+            disabled={freshMolt || fedToday || feeders < 1 || eating || (!hungry && !premolt)}
             onClick={() => dropCricket(worldRef.current!)}
           >
             <Bug className="size-4" /> {feedLabel}
@@ -258,11 +262,11 @@ export function TankView() {
       <div className="mx-auto max-w-[520px]">
         <div className="mb-3 flex items-start justify-between gap-3 text-[#efe6d8]">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#d8dce0]/75">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#d8dce0]/90">
               {sp.tag} · {STAGE_LABEL[sp.stage]} · <SexMark sex={sp.sex} /> · worth {fairAsk(sp)}
             </p>
             <h2 className="font-display truncate text-2xl leading-tight">{spec.common}</h2>
-            <p className="text-xs italic text-[#d8dce0]/80">
+            <p className="text-xs italic text-[#d8dce0]/90">
               {spec.latin} · {spec.temper} · {spec.life}
             </p>
           </div>
@@ -277,8 +281,8 @@ export function TankView() {
           </Button>
         </div>
         <Tank key={sp.id} sp={sp} spec={spec} />
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/80">
-          <span>{fed === 0 ? "Fed today" : `Fed ${fed}d ago`}</span>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/90">
+          <span>{fed === 0 ? "Fed today" : careDue(sp, spec, day).includes("feed") ? "Hungry" : `Fed ${fed}d ago`}</span>
           {premolt ? <span className="text-[#e8a0b8]">Premolt · molts tonight</span> : null}
           {freshMolt ? (
             <span className="text-[#e8a0b8]">Molted last night · skin's in the tank</span>
@@ -294,7 +298,7 @@ export function TankView() {
             </Button>
           ) : null}
         </div>
-        <p className="mt-3 text-center text-xs text-[#d8dce0]/60">
+        <p className="mt-3 text-center text-xs text-[#d8dce0]/90">
           Tap the tarantula to poke it. Tap the substrate and it'll turn toward the vibration.
         </p>
       </div>

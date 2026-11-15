@@ -32,14 +32,14 @@ export function FeltPlate({
           </div>
         ) : null}
         <span
-          className="absolute top-2 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.14em] text-[#efe6d8]"
+          className="absolute top-2 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#efe6d8]"
           style={{ background: frame }}
         >
           {sale ? "Window" : pairNick(spec)}
         </span>
         <div className="absolute inset-x-2 bottom-2 rounded-[10px] bg-[#efe6d8]/95 px-1.5 py-1 text-center">
           <p className="truncate text-[11px] font-medium leading-tight text-[#3a3a3c]">{unlocked ? (sale ? spec.common : pairNick(spec)) : "????"}</p>
-          <p className="font-mono text-[8px] uppercase text-[#6a6560]">
+          <p className="font-mono text-[10px] uppercase text-[#6a6560]">
             {unlocked ? (sale ? (KIND_LABEL[spec.kind] ?? spec.kind) : "clutch") : need}
           </p>
         </div>

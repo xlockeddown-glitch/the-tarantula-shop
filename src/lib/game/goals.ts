@@ -21,6 +21,8 @@ export type Goal = {
   reward: { chips: number; feeders?: number };
   /** Order id for "order" goals. */
   ref?: string;
+  /** The goal this one interrupted; it comes back when this is done. */
+  resume?: Goal;
 };
 
 /** Everything goals need from the save, flattened. */
@@ -41,6 +43,8 @@ export type GoalSnapshot = {
   hungry: number;
   /** Open requests with nothing in stock to fill them. */
   openOrders: { id: string; text: string; dueDay: number }[];
+  /** Shop is open now, or the sign hasn't been flipped yet today. */
+  canOpenToday: boolean;
 };
 
 export function counter(snap: GoalSnapshot, kind: GoalKind): number {
@@ -71,6 +75,7 @@ export function isDone(goal: Goal, snap: GoalSnapshot): boolean {
 
 export function isLapsed(goal: Goal, snap: GoalSnapshot): boolean {
   if (snap.day > goal.dueDay) return true;
+  if (goal.kind === "handfeed" && !isDone(goal, snap) && (snap.hungry === 0 || snap.feeders === 0)) return true;
   return (
     goal.kind === "order" &&
     !!goal.ref &&
@@ -90,6 +95,7 @@ function make(
   switch (kind) {
     case "sell": {
       // Only what's in the window can sell today. First goal stays small.
+      if (!snap.canOpenToday) return null;
       const n = Math.min(seq <= 1 ? 2 : 3, snap.listed);
       if (n < 1) return null;
       return {
@@ -125,7 +131,7 @@ function make(
         reward: { chips: 4, feeders: 4 },
       };
     case "truck":
-      if (snap.cash < 30) return null;
+      if (snap.cash < 8) return null;
       return {
         id,
         kind,
@@ -133,7 +139,7 @@ function make(
         n: 1,
         dueDay: snap.day + 1,
         text: "Buy new stock off the Truck",
-        reward: { chips: 10 },
+        reward: { chips: 4 },
       };
     case "window": {
       const n = Math.min(snap.windowCap, snap.sellable);

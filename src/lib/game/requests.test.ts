@@ -15,7 +15,7 @@ test("requests only ask for species in the pool, with time to get one", () => {
   for (let day = 1; day <= 60; day++) {
     for (const o of rollShipOrders(day, 2, starters)) {
       assert.ok(starters.some((s) => s.id === o.speciesId));
-      assert.ok(o.dueDay - day >= 4, `day ${day} due ${o.dueDay}`);
+      assert.ok(o.dueDay - day >= 8, `day ${day} due ${o.dueDay}`);
     }
   }
   assert.deepEqual(rollShipOrders(5, 2, []), []);

@@ -54,7 +54,15 @@ export const PERSONAS: Record<PersonaId, Persona> = {
 /** Push ask as a multiple of fair. */
 export const PUSH_MULT = 1.3;
 /** Over budget by more than this factor and the guest walks without a counter. */
-export const INSULT_MULT = 1.3;
+export const INSULT_MULT = 1.2;
+
+/** Hidden budget range per persona, as [min, max] multiples of fair. */
+export const BUDGET_RANGE: Record<PersonaId, [number, number]> = {
+  bargain: [0.8, 1.35],
+  first: [0.9, 1.4],
+  regular: [1.0, 1.5],
+  collector: [1.05, 1.65],
+};
 
 export function hashSeed(text: string): number {
   let h = 2166136261;
@@ -81,11 +89,12 @@ export function personaFor(
   return roll < 4 ? "bargain" : roll < 8 ? "first" : "collector";
 }
 
-/** Budget multiple with ±6% jitter from the seed. */
+/** Budget multiple spread across the persona's BUDGET_RANGE by the seed. */
 export function budgetMultFor(persona: PersonaId, seedText: string): number {
   const h = hashSeed(`${seedText}:budget`);
-  const jitter = ((h % 1000) / 1000 - 0.5) * 0.12;
-  return Math.round((PERSONAS[persona].budget + jitter) * 1000) / 1000;
+  const u = (h % 1000) / 999;
+  const [min, max] = BUDGET_RANGE[persona];
+  return Math.round((min + u * (max - min)) * 1000) / 1000;
 }
 
 export type AskLadder = { opener: number; fair: number; push: number };
@@ -119,8 +128,8 @@ export function judgeAsk(input: {
     return ask <= counter ? { outcome: "sold", price: ask } : { outcome: "walk", reason: "final" };
   }
   if (ask <= opener) return { outcome: "sold", price: ask };
-  const budget = Math.max(opener, Math.round(fair * budgetMult));
+  const budget = Math.max(opener, fair * budgetMult);
   if (ask <= budget) return { outcome: "sold", price: ask };
-  if (ask > Math.ceil(budget * INSULT_MULT)) return { outcome: "walk", reason: "insulted" };
-  return { outcome: "counter", counter: budget };
+  if (ask > budget * INSULT_MULT) return { outcome: "walk", reason: "insulted" };
+  return { outcome: "counter", counter: Math.max(opener, Math.floor(budget)) };
 }

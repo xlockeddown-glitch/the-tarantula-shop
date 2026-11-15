@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Bug, Eye, Home, MoreHorizontal, Store, Truck, Utensils } from "lucide-react";
+import {
+  BookOpen,
+  Bug,
+  Eye,
+  Home,
+  MoreHorizontal,
+  ScrollText,
+  Store,
+  Truck,
+  Utensils,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeltTable } from "./FeltTable";
 import { FeltBinder } from "./FeltBinder";
@@ -34,9 +44,16 @@ import {
   soldToday,
   spiderById,
   STAGE_LABEL,
-  TANK_COST,
 } from "@/lib/game/spiders";
-import { useGame, wholesaleToday, type GameView } from "@/lib/game/store";
+import {
+  lotPayout,
+  lotSellable,
+  lotUnit,
+  useGame,
+  wholesaleQuote,
+  wholesaleToday,
+  type GameView,
+} from "@/lib/game/store";
 import { GAME_VERSION } from "@/lib/game/version";
 import { cn } from "@/lib/utils";
 
@@ -141,7 +158,7 @@ function TitleScreen() {
           </div>
         </div>
       </div>
-      <p className="pointer-events-none absolute bottom-4 left-5 font-mono text-[10px] tracking-[0.22em] text-[#d8dce0]/75">
+      <p className="pointer-events-none absolute bottom-4 left-5 font-mono text-[10px] tracking-[0.22em] text-[#d8dce0]/90">
         v{GAME_VERSION}
       </p>
     </main>
@@ -230,13 +247,26 @@ function Tabletop() {
   const dismissToast = useGame((s) => s.dismissToast);
   const setView = useGame((s) => s.setView);
   const desk = view !== "world" && view !== "field";
+
+  useEffect(() => {
+    if (!desk) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setView("world");
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [desk, setView]);
+
   return (
     <div className="min-h-dvh bg-[#7a8480] text-[#3a3a3c]">
       <HUD />
       <div className="mx-auto max-w-6xl overflow-visible px-3 pb-28 pt-3">
         <FeltTable />
         {desk ? (
-          <div className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-[#4a524e]/75 px-3 pt-16 pb-24">
+          <div
+            className="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-[#4a524e]/75 px-3 pt-16 pb-24"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Table drawer"
+          >
             <div className="w-full max-w-4xl rounded-[20px] border border-[#3a3a3c]/20 bg-[#d8dce0] p-4 shadow-[0_16px_0_#4a524e]">
               <div className="mb-3 flex items-center justify-between">
                 <p className="font-mono text-[11px] uppercase text-[#5a605c]">Table drawer</p>
@@ -446,8 +476,8 @@ function HUD() {
             ) : null}
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate font-mono text-[11px] uppercase text-[#d8dce0]/85">
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+          <p className="min-w-[10rem] flex-1 font-mono text-[11px] uppercase text-[#d8dce0]/90">
             {nxt ? `${nxt.need} chips to ${nxt.hint}` : ""}
           </p>
           {side.map((b) => (
@@ -481,7 +511,7 @@ const NAV: { id: GameView; label: string; icon: typeof Store }[] = [
   { id: "loft", label: "Racks", icon: Store },
   { id: "wholesale", label: "Truck", icon: Truck },
   { id: "binder", label: "Binder", icon: BookOpen },
-  { id: "notes", label: "Notes", icon: BookOpen },
+  { id: "notes", label: "Notes", icon: ScrollText },
 ];
 
 function Nav() {
@@ -586,7 +616,7 @@ function LoftView() {
               variant="secondary"
               className="rounded-full"
               onClick={hireElizabeth}
-              disabled={shopTier < 1 || stats.hatches < 2 || cash < 35}
+              disabled={shopTier < 1 || stats.hatches < 1 || cash < 35}
             >
               Hire Elizabeth · 35
             </Button>
@@ -726,8 +756,9 @@ function WholesaleView() {
   const profit = useGame((s) => s.profit);
   const inbound = useGame((s) => s.inbound);
   const colony = useGame((s) => s.colony);
+  const orders = useGame((s) => s.orders);
   const gone = soldToday(day);
-  const stock = wholesaleToday(day, profit);
+  const stock = wholesaleToday(day, profit, orders);
   return (
     <div className="space-y-4">
       <h2 className="font-display text-2xl">Truck</h2>
@@ -745,52 +776,58 @@ function WholesaleView() {
         ) : null}
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        {stock.map((s) => (
-          <article
-            key={s.id}
-            className="rounded-[14px] border border-[#3a3a3c]/15 bg-[#eceef0] p-3"
-          >
-            <div className="flex gap-3">
-              <img
-                src={portraitFor(s, "adult")}
-                alt=""
-                className="size-16 rounded-lg bg-[#efe6d8] object-contain"
-              />
-              <div>
-                <p className="font-medium">{s.common}</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  <Button
-                    size="sm"
-                    className="rounded-full"
-                    disabled={gone === s.id}
-                    onClick={() => buy(s.id, "sling")}
-                  >
-                    Sling {Math.round(s.price * 0.62) + TANK_COST.sling}
-                  </Button>
-                  <Button size="sm" className="rounded-full" onClick={() => buy(s.id, "juvenile")}>
-                    Juv {Math.round(s.price * 0.9) + TANK_COST.juvenile}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-full"
-                    onClick={() => orderLot(s.id)}
-                  >
-                    Lot
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-full"
-                    onClick={() => sellLot(s.id)}
-                  >
-                    Sell 3 slings
-                  </Button>
+        {stock.map((s) => {
+          const lotCost = lotUnit(s) * 3;
+          const lotPay = lotPayout(s);
+          const slingCount = lotSellable(colony, s.id).length;
+          return (
+            <article
+              key={s.id}
+              className="rounded-[14px] border border-[#3a3a3c]/15 bg-[#eceef0] p-3"
+            >
+              <div className="flex gap-3">
+                <img
+                  src={portraitFor(s, "adult")}
+                  alt=""
+                  className="size-16 rounded-lg bg-[#efe6d8] object-contain"
+                />
+                <div>
+                  <p className="font-medium">{s.common}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <Button
+                      size="sm"
+                      className="rounded-full"
+                      disabled={gone === s.id}
+                      onClick={() => buy(s.id, "sling")}
+                    >
+                      Sling {wholesaleQuote(s, "sling")}
+                    </Button>
+                    <Button size="sm" className="rounded-full" onClick={() => buy(s.id, "juvenile")}>
+                      Juv {wholesaleQuote(s, "juvenile")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full"
+                      onClick={() => orderLot(s.id)}
+                    >
+                      Lot 3 · {lotCost}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full"
+                      disabled={slingCount < 3}
+                      onClick={() => sellLot(s.id)}
+                    >
+                      Sell 3 slings · +{lotPay}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

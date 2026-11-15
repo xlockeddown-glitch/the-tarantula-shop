@@ -1,3 +1,4 @@
+import { feedWindow } from "./care";
 import { STARTER_IDS } from "./progress";
 import { makeSling, spiderById, type OwnedSpider, type SpiderSex, type SpiderStage } from "./spiders";
 
@@ -30,10 +31,13 @@ export function rollStarterPacks(): StarterPack[] {
 export function packToColony(pack: StarterPack): OwnedSpider[] {
   let panes = 0;
   let firstSling = true;
+  let juv = 0;
   return pack.lines.map((line, i) => {
     const premolt = line.stage === "sling" && firstSling;
     if (premolt) firstSling = false;
     const sex = line.sex ?? (line.stage === "sling" ? "u" : Math.random() < 0.5 ? "f" : "m");
+    // Staggered so no starter juvenile is in premolt on day one.
+    const juvDays = line.stage === "juvenile" ? Math.min(9, 3 + 2 * juv++) : 0;
     const base = makeSling(line.speciesId, 1, line.stage, i + 1, sex);
     const canList = line.stage !== "adult" && panes < 4;
     if (canList) panes += 1;
@@ -42,11 +46,11 @@ export function packToColony(pack: StarterPack): OwnedSpider[] {
       stage: line.stage,
       tank: line.stage,
       // One sling is in premolt so the very first Sleep ends on a sex reveal.
-      days: line.stage === "adult" ? 36 : line.stage === "juvenile" ? 14 : premolt ? 5 : 2,
+      days: line.stage === "adult" ? 36 : line.stage === "juvenile" ? juvDays : premolt ? 5 : 2,
       listed: canList,
       enclosureScore: 8,
       // Off the truck hungry, so there's something to do in the tank on day one.
-      fedDay: 0,
+      fedDay: 1 - feedWindow(line.stage).every,
     };
   });
 }

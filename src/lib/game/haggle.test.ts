@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   askLadder,
+  BUDGET_RANGE,
   budgetMultFor,
   judgeAsk,
   personaFor,
@@ -30,26 +31,31 @@ test("ladder is ordered opener <= fair < push", () => {
   }
 });
 
-test("persona tells are readable: push outcome per persona at base budget", () => {
+test("persona tells are readable: Push walk rate follows the persona", () => {
   const fair = 50;
-  const push = askLadder(fair, "bargain").push;
-  assert.equal(
-    judgeAsk({ ask: push, fair, persona: "bargain", budgetMult: PERSONAS.bargain.budget }).outcome,
-    "walk",
-  );
-  assert.equal(
-    judgeAsk({ ask: push, fair, persona: "first", budgetMult: PERSONAS.first.budget }).outcome,
-    "counter",
-  );
-  assert.equal(
-    judgeAsk({ ask: push, fair, persona: "regular", budgetMult: PERSONAS.regular.budget }).outcome,
-    "counter",
-  );
-  assert.equal(
-    judgeAsk({ ask: push, fair, persona: "collector", budgetMult: PERSONAS.collector.budget })
-      .outcome,
-    "sold",
-  );
+  const n = 400;
+  const rate = (p: PersonaId) => {
+    let walks = 0;
+    for (let i = 0; i < n; i++) {
+      const r = judgeAsk({
+        ask: askLadder(fair, p).push,
+        fair,
+        persona: p,
+        budgetMult: budgetMultFor(p, `p${i}`),
+      });
+      if (r.outcome === "walk") walks += 1;
+    }
+    return walks / n;
+  };
+  const bargain = rate("bargain");
+  const first = rate("first");
+  const regular = rate("regular");
+  const collector = rate("collector");
+  assert.ok(bargain > first, `bargain ${bargain} first ${first}`);
+  assert.ok(first > regular, `first ${first} regular ${regular}`);
+  assert.ok(regular > collector, `regular ${regular} collector ${collector}`);
+  assert.ok(collector < 0.15, `collector ${collector}`);
+  assert.ok(bargain > 0.35, `bargain ${bargain}`);
 });
 
 test("counter is final: at or under sells, over walks", () => {
@@ -72,9 +78,10 @@ test("persona and budget are stable per seed; returning is regular", () => {
   assert.equal(personaFor("c12-1"), personaFor("c12-1"));
   assert.equal(budgetMultFor("first", "x"), budgetMultFor("first", "x"));
   assert.equal(personaFor("anything", { returning: true }), "regular");
+  const [lo, hi] = BUDGET_RANGE.collector;
   for (let i = 0; i < 200; i++) {
     const m = budgetMultFor("collector", `s${i}`);
-    assert.ok(m >= PERSONAS.collector.budget - 0.061 && m <= PERSONAS.collector.budget + 0.061);
+    assert.ok(m >= lo && m <= hi, `${m}`);
   }
 });
 
@@ -84,19 +91,21 @@ test("all personas appear across seeds", () => {
   for (const p of ["bargain", "first", "collector"]) assert.ok(seen.has(p), p);
 });
 
-test("first-timers and regulars never walk on Push; they counter or buy", () => {
+test("regulars walk on Push less often than first-timers", () => {
+  const walks = { first: 0, regular: 0 };
   for (const p of ["first", "regular"] as const) {
     for (let i = 0; i < 300; i++) {
       for (const fair of [6, 11, 15, 24, 48, 130]) {
         const mult = budgetMultFor(p, `g${i}`);
         const r = judgeAsk({ ask: askLadder(fair, p).push, fair, persona: p, budgetMult: mult });
-        assert.notEqual(r.outcome, "walk", `${p} fair=${fair} mult=${mult}`);
+        if (r.outcome === "walk") walks[p] += 1;
       }
     }
   }
+  assert.ok(walks.regular < walks.first, JSON.stringify(walks));
 });
 
-test("bargain hunters mostly walk on Push", () => {
+test("bargain hunters often walk on Push", () => {
   let walks = 0;
   let total = 0;
   for (let i = 0; i < 300; i++) {
@@ -114,5 +123,5 @@ test("bargain hunters mostly walk on Push", () => {
         walks += 1;
     }
   }
-  assert.ok(walks / total > 0.6, `walk rate ${walks / total}`);
+  assert.ok(walks / total > 0.35, `walk rate ${walks / total}`);
 });

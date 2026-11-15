@@ -48,9 +48,10 @@ export function GoalStrip() {
       <Target className="size-4 shrink-0 text-[#f2d58a]" aria-hidden="true" />
       <button type="button" onClick={go} className="min-w-0 flex-1 text-left">
         <span className="block truncate text-sm leading-tight">{goal.text}</span>
-        <span className="block font-mono text-[10px] uppercase text-[#d8dce0]/80">
+        <span className="block font-mono text-[10px] uppercase text-[#d8dce0]/90">
           {goal.n > 1 ? `${done}/${goal.n} · ` : ""}
-          {goal.dueDay <= day ? "today" : `by day ${goal.dueDay}`} · +{goal.reward.chips} chips
+          {goal.dueDay <= day ? "today" : `by day ${goal.dueDay}`}
+          {goal.reward.chips ? ` · +${goal.reward.chips} chips` : ""}
           {goal.reward.feeders ? ` · +${goal.reward.feeders} crickets` : ""}
         </span>
       </button>
@@ -60,6 +61,7 @@ export function GoalStrip() {
           onClick={swap}
           className="shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase text-[#d8dce0] hover:bg-white/10"
           title="Swap for a different goal (once a day)"
+          aria-label="Swap for a different goal (once a day)"
         >
           Swap
         </button>

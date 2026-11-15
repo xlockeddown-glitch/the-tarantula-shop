@@ -16,7 +16,14 @@ import {
   type TrailCard,
 } from "@/lib/game/field";
 import { windowSlots, type DisplayPin } from "@/lib/game/progress";
-import { spiderById, fairAsk, pairNick, shipMatch, type OwnedSpider } from "@/lib/game/spiders";
+import {
+  spiderById,
+  fairAsk,
+  pairNick,
+  shipMatch,
+  isPremolt,
+  type OwnedSpider,
+} from "@/lib/game/spiders";
 import { bumpedOffer } from "@/lib/game/returns";
 import { askLadder, PERSONAS, type PersonaId } from "@/lib/game/haggle";
 import { guestTarget, useGame } from "@/lib/game/store";
@@ -39,17 +46,20 @@ function groupStacks(list: OwnedSpider[]) {
   return [...m.values()];
 }
 
-function LookButton({ id, label }: { id: string; label: string }) {
+function LookButton({ id, label, small }: { id: string; label: string; small?: boolean }) {
   const openTank = useGame((s) => s.openTank);
   return (
     <button
       type="button"
-      onClick={() => openTank(id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        openTank(id);
+      }}
       aria-label={`Look at ${label}`}
       title="Look in the tank"
-      className="absolute top-1 left-1 z-20 flex size-7 items-center justify-center rounded-full border-2 border-[#efe6d8] bg-[#3a3a3c]/85 text-[#efe6d8] shadow-[0_2px_0_#8a8680] active:scale-95"
+      className={`absolute top-1 left-1 z-20 flex items-center justify-center rounded-full border-2 border-[#efe6d8] bg-[#3a3a3c]/90 text-[#efe6d8] shadow-[0_2px_0_#8a8680] active:scale-95 ${small ? "size-7" : "size-9 before:absolute before:-inset-1.5 before:content-['']"}`}
     >
-      <Eye className="size-3.5" />
+      <Eye className={small ? "size-3.5" : "size-4"} />
     </button>
   );
 }
@@ -60,7 +70,7 @@ function ChipStack({ spiders, onTop }: { spiders: OwnedSpider[]; onTop: (id: str
   const n = spiders.length;
   return (
     <div className="relative">
-      <LookButton id={top.id} label={spiderById(top.speciesId)?.common ?? "it"} />
+      <LookButton small id={top.id} label={spiderById(top.speciesId)?.common ?? "it"} />
       <button type="button" className="relative" onClick={() => onTop(top.id)}>
         {n > 1 ? (
           <span className="absolute top-1 left-1 h-[110px] w-[88px] rounded-[12px] border-2 border-[#efe6d8] bg-[#d8cfc0] shadow-[0_8px_0_#8a8680]" />
@@ -94,6 +104,8 @@ function CardFace({
   const day = useGame((s) => s.day);
   if (!spec) return null;
   const due = careDue(spider, spec, day).length > 0;
+  const premolt = isPremolt(spider);
+  const freshMolt = spider.moltDay === day;
   return (
     <article
       className={`overflow-hidden rounded-[12px] border-2 border-[#efe6d8] bg-[#efe6d8] shadow-[0_8px_0_#8a8680] ${small ? "w-[88px]" : fill ? "w-full" : "w-[128px]"}`}
@@ -107,12 +119,26 @@ function CardFace({
         <p className="truncate text-[11px] font-medium leading-tight text-[#3a3a3c]">
           {spec.common}
         </p>
-        <p className="font-mono text-[9px] uppercase tracking-wide text-[#6a6560]">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
           {spider.stage} · <SexMark sex={spider.sex} />
           {spider.listed ? " · sale" : ""}
           {spider.wild ? " · wild" : ""}
           {due ? " · due" : ""}
         </p>
+        {premolt || freshMolt ? (
+          <div className="mt-0.5 flex flex-wrap gap-1">
+            {premolt ? (
+              <span className="rounded-full bg-[#3a3a3c] px-1.5 py-0.5 font-mono text-[10px] uppercase leading-none text-[#e8a0b8]">
+                Premolt
+              </span>
+            ) : null}
+            {freshMolt ? (
+              <span className="rounded-full bg-[#5aa8a0] px-1.5 py-0.5 font-mono text-[10px] uppercase leading-none text-[#efe6d8]">
+                Fresh molt
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -128,11 +154,11 @@ function WallFace({ pin, onUnpin }: { pin: DisplayPin; onUnpin: () => void }) {
       type="button"
       onClick={onUnpin}
       title="Take off the wall"
-      className="relative h-52 w-36 shrink-0 overflow-hidden rounded-[16px] border-4 object-cover shadow-[0_14px_0_#4a524e]"
+      className="relative h-32 w-24 shrink-0 overflow-hidden rounded-[16px] border-4 object-cover shadow-[0_14px_0_#4a524e] sm:h-52 sm:w-36"
       style={{ borderColor: frame }}
     >
       <img src={feltCardArt(spec.id, pin.kind)} alt="" className="size-full object-cover" />
-      <span className="absolute inset-x-0 bottom-0 bg-[#efe6d8]/90 py-1 font-mono text-[9px] uppercase text-[#3a3a3c]">
+      <span className="absolute inset-x-0 bottom-0 bg-[#efe6d8]/90 py-1 font-mono text-[10px] uppercase text-[#3a3a3c]">
         {sale ? spec.common : pairNick(spec)}
       </span>
     </button>
@@ -145,7 +171,7 @@ function EmptySlot({ label, large }: { label: string; large?: boolean }) {
       className={`relative overflow-hidden rounded-[12px] border-2 border-[#efe6d8] shadow-[0_6px_0_#8a8680] ${large ? "h-40 w-full sm:h-44" : "h-[118px] w-[88px]"}`}
     >
       <img src="/game/felt/slot-empty.webp" alt="" className="size-full object-cover" />
-      <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[8px] uppercase text-[#3a3a3c]">
+      <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[10px] uppercase text-[#3a3a3c]">
         {label}
       </span>
     </div>
@@ -177,7 +203,7 @@ function TrailFindFace({
     find.kind === "sling" && spec
       ? `${spec.common} · ${spec.latin}. On the rack until it molts.`
       : find.kind === "silk"
-        ? "That's the walk for today."
+        ? "Stuck here this draw. Keep going."
         : find.kind === "full"
           ? `${find.space} had something — no room for another sling.`
           : `${find.space}. Nothing under the felt.`;
@@ -218,7 +244,7 @@ function TrailCardFace({ card, large }: { card: TrailCard; large?: boolean }) {
       style={{ backgroundColor: cardColor(card) }}
     >
       <p
-        className={`font-mono uppercase tracking-wide text-[#efe6d8] ${large ? "text-[11px]" : "text-[8px]"}`}
+        className={`font-mono uppercase tracking-wide text-[#efe6d8] ${large ? "text-[11px]" : "text-[10px]"}`}
       >
         {card.kind === "color" ? (card.double ? "Double" : "Color") : card.kind}
       </p>
@@ -322,7 +348,9 @@ function RequestBoard() {
                       lastBreeder(pick, colony) ? setConfirm(o.id) : fillOrder(o.id, pick.id)
                     }
                   >
-                    Ship {pick.tag.replace("SP-", "#")}
+                    Ship {pick.sex === "f" ? "♀ " : pick.sex === "m" ? "♂ " : ""}
+                    {pick.stage === "juvenile" ? "juv" : pick.stage}{" "}
+                    {pick.listed ? "(window)" : "(rack)"}
                   </Button>
                 )
               ) : null}
@@ -379,7 +407,13 @@ const PERSONA_TINT: Record<PersonaId, string> = {
   regular: "#c47858",
 };
 
-function GuestCard({ guest }: { guest: ShopCustomer }) {
+function keeperLevel(husbandry: number) {
+  if (husbandry >= 7) return "Veteran";
+  if (husbandry >= 4) return "Keeper";
+  return "Newbie";
+}
+
+function GuestCard({ guest, first }: { guest: ShopCustomer; first?: boolean }) {
   const colony = useGame((s) => s.colony);
   const serve = useGame((s) => s.serveCustomer);
   const refuse = useGame((s) => s.refuseCustomer);
@@ -412,13 +446,16 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-display text-lg leading-none text-[#3a3a3c]">{guest.name}</p>
         <span
-          className="rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-[#efe6d8]"
+          className="rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[#efe6d8]"
           style={{ backgroundColor: tint }}
         >
           {persona.label}
         </span>
+        <span className="rounded-full border border-[#3a3a3c]/20 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[#5a5652]">
+          {keeperLevel(guest.husbandry)}
+        </span>
         {guest.returning ? (
-          <span className="font-mono text-[9px] uppercase text-[#6a6560]">
+          <span className="font-mono text-[10px] uppercase text-[#6a6560]">
             visit {guest.visits + 1}
           </span>
         ) : null}
@@ -476,6 +513,7 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
                     variant="paper"
                     className="rounded-full border border-[#3a3a3c]/15"
                     title="Their opening offer. Always a sale."
+                    aria-label="Their opening offer. Always a sale."
                     onClick={() => serve(guest.id, target.id, ladder.opener)}
                   >
                     Their offer {ladder.opener}
@@ -492,6 +530,7 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
                     variant="secondary"
                     className="rounded-full"
                     title="They might counter, or walk."
+                    aria-label="They might counter, or walk."
                     onClick={() => serve(guest.id, target.id, ladder.push)}
                   >
                     Push {ladder.push}
@@ -507,6 +546,11 @@ function GuestCard({ guest }: { guest: ShopCustomer }) {
                 </>
               )}
             </div>
+            {first && counter == null ? (
+              <p className="mt-1 font-mono text-[10px] text-[#6a6560]">
+                Their offer always sells · Push risks a walk
+              </p>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -622,6 +666,8 @@ export function FeltTable() {
   const unpinDisplay = useGame((s) => s.unpinDisplay);
   const listSpider = useGame((s) => s.listSpider);
   const startBreed = useGame((s) => s.startBreed);
+  const clutches = useGame((s) => s.clutches);
+  const collectClutch = useGame((s) => s.collectClutch);
   const leaveField = useGame((s) => s.leaveField);
 
   const windows = windowSlots(shopTier);
@@ -706,7 +752,7 @@ export function FeltTable() {
                     alt=""
                     className="size-full object-cover opacity-55"
                   />
-                  <span className="absolute inset-x-0 bottom-0 bg-[#efe6d8]/90 py-0.5 text-center font-mono text-[8px] uppercase text-[#3a3a3c]">
+                  <span className="absolute inset-x-0 bottom-0 bg-[#efe6d8]/90 py-0.5 text-center font-mono text-[10px] uppercase text-[#3a3a3c]">
                     {spaceLabel(space)}
                   </span>
                   {on ? (
@@ -758,22 +804,24 @@ export function FeltTable() {
   return (
     <div className="relative">
       {displayPins.length ? (
-        <div className="mb-3 flex justify-center pt-2">
-          {displayPins.map((pin, i) => {
-            const mid = (displayPins.length - 1) / 2;
-            return (
-              <div
-                key={`${pin.speciesId}-${pin.kind}`}
-                className="-ml-3 first:ml-0"
-                style={{
-                  transform: `rotate(${(i - mid) * 8}deg) translateY(${Math.abs(i - mid) * 6}px)`,
-                  zIndex: 10 - Math.abs(i - mid),
-                }}
-              >
-                <WallFace pin={pin} onUnpin={() => unpinDisplay(i)} />
-              </div>
-            );
-          })}
+        <div className="mb-3 overflow-x-auto px-2 pt-3 pb-4">
+          <div className="mx-auto flex w-max justify-center">
+            {displayPins.map((pin, i) => {
+              const mid = (displayPins.length - 1) / 2;
+              return (
+                <div
+                  key={`${pin.speciesId}-${pin.kind}`}
+                  className="-ml-3 first:ml-0"
+                  style={{
+                    transform: `rotate(${(i - mid) * 8}deg) translateY(${Math.abs(i - mid) * 6}px)`,
+                    zIndex: 10 - Math.abs(i - mid),
+                  }}
+                >
+                  <WallFace pin={pin} onUnpin={() => unpinDisplay(i)} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : null}
       <div
@@ -788,6 +836,23 @@ export function FeltTable() {
           ) : null}
 
           {coachBeat < 4 ? <CoachCard beat={coachBeat} onSkip={skipCoach} /> : null}
+
+          {shopMode === "open" ? (
+            <section className="mb-4 rounded-[14px] bg-[#efe6d8]/70 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+                Across the table
+              </p>
+              {queue.length === 0 ? (
+                <p className="mt-2 text-sm text-[#6a6560]">No one sitting yet.</p>
+              ) : (
+                <div className="mt-2 space-y-2.5">
+                  {queue.map((g, i) => (
+                    <GuestCard key={g.id} guest={g} first={i === 0} />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
 
           <section className="mb-4">
             <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">
@@ -814,7 +879,7 @@ export function FeltTable() {
 
           <section className="mb-4">
             <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-[#3a3a3c]/70">
-              Rack · click to list
+              Rack · tap to list
             </p>
             <div className="flex flex-wrap gap-2">
               {rack.length === 0 ? (
@@ -862,33 +927,49 @@ export function FeltTable() {
                     {pair.rest > 0 ? `Rest ${pair.rest}` : "Introduce"}
                   </Button>
                 </div>
-              ) : (
+              ) : clutches.length === 0 ? (
                 <p className="mt-2 text-sm text-[#6a6560]">
                   Need an adult ♀ and ♂ of the same species on the rack.
                 </p>
-              )}
+              ) : null}
+              {clutches.length > 0 ? (
+                <div className="mt-2 space-y-1.5">
+                  {clutches.map((c) => {
+                    const left = Math.max(0, c.readyDay - day);
+                    const specName = spiderById(c.speciesId)?.common ?? c.speciesId;
+                    return left === 0 ? (
+                      <div key={c.femaleId} className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-[#3a3a3c]">{specName}</span>
+                        <Button
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => collectClutch(c.femaleId)}
+                        >
+                          Collect sac
+                        </Button>
+                      </div>
+                    ) : (
+                      <p key={c.femaleId} className="font-mono text-[10px] uppercase text-[#6a6560]">
+                        {specName} · Egg sac · {left} night{left === 1 ? "" : "s"} left
+                      </p>
+                    );
+                  })}
+                </div>
+              ) : null}
             </section>
 
-            <section className="rounded-[14px] bg-[#efe6d8]/70 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
-                Across the table
-              </p>
-              {shopMode !== "open" ? (
+            {shopMode !== "open" ? (
+              <section className="rounded-[14px] bg-[#efe6d8]/70 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">
+                  Across the table
+                </p>
                 <p className="mt-2 text-sm text-[#6a6560]">
                   {sheHasTill
                     ? "Elizabeth already ran the line. Notes has her slip."
                     : "Open the shop to deal, or let Elizabeth have the till."}
                 </p>
-              ) : queue.length === 0 ? (
-                <p className="mt-2 text-sm text-[#6a6560]">No one sitting yet.</p>
-              ) : (
-                <div className="mt-2 space-y-2.5">
-                  {queue.map((g) => (
-                    <GuestCard key={g.id} guest={g} />
-                  ))}
-                </div>
-              )}
-            </section>
+              </section>
+            ) : null}
           </div>
 
           <RequestBoard />
@@ -899,7 +980,7 @@ export function FeltTable() {
             </p>
             <p className="mt-2 text-xs text-[#6a6560]">
               3 sales unlocks Window. 5 clutches unlocks Pair. Pin from Binder — it hangs in the
-              background like the title cards. Click a hanging card to take it down.
+              background like the title cards. Tap a hanging card to take it down.
             </p>
           </section>
         </div>

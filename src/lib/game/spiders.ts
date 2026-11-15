@@ -104,7 +104,7 @@ export const STOCK_CAP = { sling: 25, juvenile: 10, adult: 5 } as const;
 export const TANK_COST = { sling: 4, juvenile: 8, adult: 16, breed: 22 } as const;
 export const FEEDER_PACK = { qty: 8, cost: 2 } as const;
 export const FEEDER_CRATE = { qty: 28, cost: 8 } as const;
-export const RENT_PER_NIGHT = 4;
+export const RENT_PER_NIGHT = 10;
 
 export function spiderById(id: string) {
   return SPIDER_SPECIES.find((s) => s.id === id);
@@ -503,18 +503,21 @@ export function rollShipOrders(day: number, count = 2, pool: SpiderSpecies[] = S
   for (let i = 0; i < count; i++) {
     const spec = pool[(day * 7 + i * 13) % n]!;
     const stage: "juvenile" | "adult" = (day + i) % 3 === 0 ? "adult" : "juvenile";
-    const sexRoll = (day + i) % 3;
+    const sexRoll = (day + 2 * i + Math.floor(day / 3)) % 3;
     const sex: ShipOrder["sex"] = sexRoll === 0 ? "f" : sexRoll === 1 ? "m" : "any";
     const name = CUST_NAMES[(day + i * 5) % CUST_NAMES.length]!;
-    const base = spec.price * (stage === "adult" ? 1.15 : 0.9) * (sex === "f" ? 1.4 : 1);
+    const f = fairAsk({ ...makeSling(spec.id, day, stage, 0, sex === "any" ? "u" : sex), stage });
     out.push({
       id: `sh-${day}-${i}`,
       name,
       speciesId: spec.id,
       stage,
       sex,
-      dueDay: day + (stage === "adult" ? 6 : 4) + (i % 2),
-      pay: Math.max(14, Math.round(base * 1.35)),
+      dueDay:
+        stage === "adult"
+          ? day + STAGE_DAYS.sling + STAGE_DAYS.juvenile + 2
+          : day + STAGE_DAYS.sling + 2,
+      pay: Math.max(14, Math.round(1.35 * f)),
       pack: packLabel(spec),
     });
   }
@@ -556,6 +559,8 @@ export function migrateOwned(raw: Partial<OwnedSpider>, day: number, serial: num
     breedRestUntil: raw.breedRestUntil,
     spentUntil: raw.spentUntil,
     wild: !!raw.wild,
+    moltDay: raw.moltDay,
+    listedDay: raw.listedDay,
   };
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const SECTIONS: { title: string; body: string }[] = [
   {
@@ -7,11 +7,11 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "The wall",
-    body: "Unlock a Window or Pair portrait in the binder, then Pin. It hangs behind the shop like the title cards — not for sale. Click it to take it down. Next Open, a guest comes looking for that species. List a live one if you want the sale.",
+    body: "Unlock a Window or Pair portrait in the binder, then Pin. It hangs behind the shop like the title cards — not for sale. Tap it to take it down. Next Open, a guest comes looking for that species. List a live one if you want the sale.",
   },
   {
     title: "Window vs rack",
-    body: "Click a rack card to list it in the window. Click a window card to pull it back. Rack faces are felt chips (the animal). Binder and wall keep the framed Window / Pair portraits. Panes: 4 → 6 → 10 → 18. Guests do not match pane count — more glass is display, not more buyers.",
+    body: "Tap a rack card to list it in the window. Tap a window card to pull it back. Rack faces are felt chips (the animal). Binder and wall keep the framed Window / Pair portraits. Panes: 4 → 6 → 10 → 18. Guests do not match pane count — more glass is display, not more buyers.",
   },
   {
     title: "Open / close / sleep",
@@ -31,7 +31,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Tanks",
-    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed.",
+    body: "Tap the eye on any card (or Look in Racks) to open its tank. Drop a cricket and watch it hunt — that's a feed. Fill the dish, mist, wipe the glass. Tap the tarantula to poke it: docile ones flinch (poke twice and they kick hairs), skittish ones bolt, defensive ones rear up. Premolt animals go dark and refuse food. The morning after a molt, the shed skin lies in the tank and the fangs are still soft: no food that day. Neither counts as a missed feed. Slings eat every 2 days, juveniles every 4, adults about weekly; between feeds they're just not hungry.",
   },
   {
     title: "Goals",
@@ -47,7 +47,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Elizabeth",
-    body: "Hire after extra glass and two hatches (35 chips). Fill the window, then tap Elizabeth has the till. She sells listed stock, skips defensive / old-world stock unless the guest is a keeper, tends jars, and leaves a slip in Notes. That locks Open for the day and unlocks the Trail.",
+    body: "Hire after extra glass and your first hatch (35 chips). Fill the window, then tap Elizabeth has the till. She sells listed stock, skips defensive / old-world stock unless the guest is a keeper, tends jars, and leaves a slip in Notes. That locks Open for the day and unlocks the Trail.",
   },
   {
     title: "Felt trail",
@@ -63,12 +63,20 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "Upgrades",
-    body: "Overnight glass: 6 panes. Back counter: 10 panes. (Elizabeth can hire after Overnight glass + two hatches.) Second address: 18 panes and warehouse racks (72 slings / 36 juveniles / 18 adults). Guest line grows slower (3 → 7).",
+    body: "Overnight glass: 6 panes. Back counter: 10 panes. (Elizabeth can hire after Overnight glass + one hatch.) Second address: 18 panes and warehouse racks (72 slings / 36 juveniles / 18 adults). Guest line grows slower (3 → 7).",
   },
 ];
 
 export function HelpGuide() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
     <>
       <button
@@ -80,7 +88,13 @@ export function HelpGuide() {
         ?
       </button>
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#3a3a3c]/40 p-3 sm:items-center" onClick={() => setOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#3a3a3c]/40 p-3 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Keeper notes"
+          onClick={() => setOpen(false)}
+        >
           <div
             className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-[20px] border-4 border-[#5aa8a0] bg-[#d8dce0] p-5 shadow-[0_16px_0_#4a524e]"
             onClick={(e) => e.stopPropagation()}
