@@ -1,0 +1,4 @@
+#!/bin/sh
+# Runs typecheck, build and the game tests before every push.
+# Skip once with: git push --no-verify
+npm run check:local
