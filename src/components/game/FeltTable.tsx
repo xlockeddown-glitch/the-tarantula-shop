@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye } from "lucide-react";
 import { portraitFor, feltCardArt } from "@/lib/game/look";
 import { careDue } from "@/lib/game/care";
+import { passScore } from "@/lib/game/enclosure";
 import {
   PATH,
   PATH_COLS,
@@ -22,8 +23,7 @@ import {
   pairNick,
   shipMatch,
   isPremolt,
-  type OwnedSpider,
-} from "@/lib/game/spiders";
+  type OwnedSpider, isWellKept } from "@/lib/game/spiders";
 import { bumpedOffer } from "@/lib/game/returns";
 import { askLadder, PERSONAS, type PersonaId } from "@/lib/game/haggle";
 import { guestTarget, useGame } from "@/lib/game/store";
@@ -106,6 +106,8 @@ function CardFace({
   const due = careDue(spider, spec, day).length > 0;
   const premolt = isPremolt(spider);
   const freshMolt = spider.moltDay === day;
+  const rehouse = !!spider.build && spider.enclosureScore < passScore(spec);
+  const wellKept = isWellKept(spider);
   return (
     <article
       className={`overflow-hidden rounded-[12px] border-2 border-[#efe6d8] bg-[#efe6d8] shadow-[0_8px_0_#8a8680] ${small ? "w-[88px]" : fill ? "w-full" : "w-[128px]"}`}
@@ -125,8 +127,18 @@ function CardFace({
           {spider.wild ? " · wild" : ""}
           {due ? " · due" : ""}
         </p>
-        {premolt || freshMolt ? (
+        {premolt || freshMolt || rehouse || wellKept ? (
           <div className="mt-0.5 flex flex-wrap gap-1">
+            {wellKept ? (
+              <span className="rounded-full bg-[#5aa8a0] px-1.5 py-0.5 font-mono text-[10px] uppercase leading-none text-[#efe6d8]">
+                Well kept
+              </span>
+            ) : null}
+            {rehouse ? (
+              <span className="rounded-full bg-[#c47858] px-1.5 py-0.5 font-mono text-[10px] uppercase leading-none text-[#efe6d8]">
+                Rehouse
+              </span>
+            ) : null}
             {premolt ? (
               <span className="rounded-full bg-[#3a3a3c] px-1.5 py-0.5 font-mono text-[10px] uppercase leading-none text-[#e8a0b8]">
                 Premolt

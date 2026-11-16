@@ -227,7 +227,7 @@ function FaceBody({ card }: { card: RevealCard }) {
             {card.tag} · {name}.{" "}
             {card.reason === "crib"
               ? "Needs a bigger crib. Expand or sell."
-              : "Didn't like the setup. Rebuild on the bench."}
+              : "Needs a new setup for its size. Open its tank → Setup."}
           </p>
         </>
       );

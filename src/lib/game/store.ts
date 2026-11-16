@@ -1,7 +1,15 @@
 import { create } from "zustand";
 import { femaleRestDays, pairRisk, restLeft } from "./breed";
 import { applyTendAll, careDue, defaultWall, needsMist, needsWaterBowl, atRisk, wouldDie, type WallBay } from "./care";
-import { passScore } from "./enclosure";
+import {
+  assessBuild,
+  buildCost,
+  draftOf,
+  migrateBuild,
+  passScore,
+  sameBuild,
+  type EnclosureBuild,
+} from "./enclosure";
 import { forageRoll, forageLabel, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spaceLabel, TRAIL, FLIPS_PER_DAY, type TrailCard } from "./field";
 import { isDone, isLapsed, pickGoal, type Goal, type GoalKind, type GoalSnapshot } from "./goals";
 import { askLadder, budgetMultFor, judgeAsk, personaFor } from "./haggle";
@@ -318,6 +326,7 @@ export type GameState = {
   dumpListed: (id: string) => void;
   nameSpider: (id: string, name: string) => void;
   adoptPet: (id: string, name: string) => void;
+  installBuild: (id: string, draft: Omit<EnclosureBuild, "score">) => void;
   buyWholesale: (speciesId: string, stage: SpiderStage) => void;
   buyFeeders: () => void;
   buyFeederCrate: () => void;
@@ -360,7 +369,7 @@ const blank = (): Omit<
   GameState,
   | "hydrate" | "startNew" | "reset" | "choosePack" | "setView" | "toast" | "dismissToast"
   | "openShop" | "closeShop" | "talkTo" | "tend" | "feed" | "careAll" | "careRack"
-  | "listSpider" | "dumpListed" | "nameSpider" | "adoptPet" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
+  | "listSpider" | "dumpListed" | "nameSpider" | "adoptPet" | "installBuild" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
   | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
   | "serveCustomer" | "refuseCustomer" | "bookGuest" | "fillOrder" | "startBreed" | "collectClutch"
   | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
@@ -431,9 +440,10 @@ export const useGame = create<GameState>((set, get) => ({
       const parsed = JSON.parse(raw) as Partial<GameState>;
       const day = parsed.day ?? 1;
       const colony = ((parsed.colony as OwnedSpider[] | undefined) ?? []).map((c, i) => {
-        const m = migrateOwned({ ...c, wild: (c as OwnedSpider).wild }, day, i + 1);
+        const m = migrateOwned({ ...c, wild: (c as OwnedSpider).wild, build: migrateBuild(c.build) }, day, i + 1);
         const spec = spiderById(m.speciesId);
-        if (spec && spec.ow && m.enclosureScore < passScore(spec)) return { ...m, enclosureScore: passScore(spec) };
+        // A built setup keeps its real score, or a reload would clear a Rehouse hold.
+        if (spec && spec.ow && !m.build && m.enclosureScore < passScore(spec)) return { ...m, enclosureScore: passScore(spec) };
         return m;
       });
       set({
@@ -786,6 +796,34 @@ export const useGame = create<GameState>((set, get) => ({
       ].slice(0, 40),
     });
     get().toast(`${name} is the shop pet now.`);
+    persist({ ...get() });
+  },
+
+  installBuild: (id, draft) => {
+    const s = get();
+    const sp = s.colony.find((c) => c.id === id);
+    if (!sp) return;
+    const spec = spiderById(sp.speciesId);
+    if (!spec) return;
+    const need = passScore(spec);
+    const a = assessBuild(spec, sp.stage, draft);
+    if (a.score < need) {
+      get().toast(`Not good enough yet: ${a.misses[0] ?? `scores ${a.score}/10, needs ${need}.`}`);
+      return;
+    }
+    const cost = sp.build && sameBuild(sp.build, draft) ? 0 : buildCost(draft);
+    if (s.cash < cost) {
+      get().toast(`Need ${cost} chips.`);
+      return;
+    }
+    const hadPassing = !!sp.build && sp.build.score >= need;
+    const build: EnclosureBuild = { ...draftOf(draft), score: a.score };
+    set({
+      cash: s.cash - cost,
+      colony: s.colony.map((c) => (c.id === id ? { ...c, build, enclosureScore: a.score } : c)),
+      stats: hadPassing ? s.stats : { ...s.stats, goodBuilds: s.stats.goodBuilds + 1 },
+    });
+    get().toast(`New setup in. Score ${a.score}/10.`);
     persist({ ...get() });
   },
 
@@ -1627,21 +1665,27 @@ export const useGame = create<GameState>((set, get) => ({
     const cards: RevealCard[] = [];
     for (const sp of [...colony]) {
       const spec = spiderById(sp.speciesId);
-      const blockedByHouse = spec ? sp.enclosureScore < passScore(spec) && spec.ow : false;
+      // A built setup holds any species when it fails. Shop default tanks only hold Old World stock.
+      const blockedByHouse = spec ? sp.enclosureScore < passScore(spec) && (!!sp.build || spec.ow) : false;
       if (blockedByHouse && spec) {
-        notes.push({
-          id: nid("j"),
-          day: s.day,
-          title: `${sp.tag} held a molt`,
-          body: `${spec.common} didn't like the setup. Rebuild on the bench.`,
-        });
         if (moltIfReady(sp, colony, caps).molt) {
+          notes.push({
+            id: nid("j"),
+            day: s.day,
+            title: `${sp.tag} held a molt`,
+            body: `${spec.common} needs a new setup for its size. Open its tank → Setup.`,
+          });
           cards.push({ kind: "held", id: nid("r"), speciesId: sp.speciesId, tag: sp.tag, reason: "setup" });
         }
         continue;
       }
       const res = moltIfReady(sp, colony, caps);
-      const fresh = res.molt ? { ...res.spider, moltDay: s.day + 1 } : res.spider;
+      let fresh: OwnedSpider = res.molt ? { ...res.spider, moltDay: s.day + 1 } : res.spider;
+      if (res.molt && spec && fresh.build) {
+        // Bigger animal, same tank: score what it lives in now.
+        const score = assessBuild(spec, res.molt, fresh.build).score;
+        fresh = { ...fresh, build: { ...fresh.build, score }, enclosureScore: score };
+      }
       colony = colony.map((c) => (c.id === sp.id ? fresh : c));
       if (res.molt) {
         cards.push({
