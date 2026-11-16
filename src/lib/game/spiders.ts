@@ -1,4 +1,5 @@
 import type { PersonaId } from "./haggle";
+import type { EnclosureBuild } from "./enclosure";
 export type SpiderKind = "terrestrial" | "arboreal" | "semi" | "dwarf" | "jumper";
 export type SpiderLife = "arboreal" | "terrestrial" | "fossorial";
 export type SpiderRarity = "common" | "uncommon" | "rare";
@@ -244,6 +245,8 @@ export type OwnedSpider = {
   name: string;
   inBreed: boolean;
   enclosureScore: number;
+  /** Player-built setup. Absent means the shop default tank. */
+  build?: EnclosureBuild;
   mates?: number;
   lastMateId?: string;
   breedRestUntil?: number;
@@ -437,7 +440,14 @@ export function fairAsk(sp: OwnedSpider): number {
   if (sp.stage === "adult") p = Math.round(p * 1.15);
   if (sp.sex === "f") p = Math.round(p * 1.5);
   if (sp.sex === "m") p = Math.round(p * 0.95);
+  if (isWellKept(sp)) p = Math.round(p * 1.1);
   return Math.max(6, p);
+}
+
+/** Housed in a near-perfect setup (9-10/10). Worth 10% more. */
+export const WELL_KEPT_SCORE = 9;
+export function isWellKept(sp: OwnedSpider) {
+  return !!sp.build && sp.build.score >= WELL_KEPT_SCORE;
 }
 
 export function saleChance(ask: number, fair: number): number {
@@ -577,6 +587,7 @@ export function migrateOwned(raw: Partial<OwnedSpider>, day: number, serial: num
     wild: !!raw.wild,
     moltDay: raw.moltDay,
     listedDay: raw.listedDay,
+    build: raw.build,
   };
 }
 

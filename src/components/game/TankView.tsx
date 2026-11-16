@@ -1,7 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bug, Droplets, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { careDue, daysSince, needsMist, needsWaterBowl } from "@/lib/game/care";
+import {
+  assessBuild,
+  buildCost,
+  DEEP_OPT,
+  draftOf,
+  HIDE_OPTS,
+  passScore,
+  sameBuild,
+  blankDraft,
+  SUB_OPTS,
+  VENT_OPT,
+  VESSEL_OPTS,
+  WATER_OPTS,
+  type BuildDraft,
+} from "@/lib/game/enclosure";
 import { paintOf } from "@/lib/game/look";
 import {
   adoptBlockReason,
@@ -10,8 +25,7 @@ import {
   spiderById,
   fairAsk,
   type OwnedSpider,
-  type SpiderSpecies,
-} from "@/lib/game/spiders";
+  type SpiderSpecies, WELL_KEPT_SCORE } from "@/lib/game/spiders";
 import { useGame } from "@/lib/game/store";
 import { drawTank, toTank, type TankLook } from "@/lib/game/tankDraw";
 import {
@@ -228,15 +242,205 @@ function Tank({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   );
 }
 
-function PetAdoption({ sp }: { sp: OwnedSpider }) {
+function BenchChip({
+  label,
+  cost,
+  on,
+  onPick,
+}: {
+  label: string;
+  cost: string;
+  on: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onPick}
+      className={`flex min-h-9 items-center gap-1.5 rounded-full border-2 px-3 text-left text-xs leading-tight ${
+        on
+          ? "border-[#3a3a3c] bg-[#3a3a3c] text-[#efe6d8]"
+          : "border-[#3a3a3c]/25 bg-[#f4eee6] text-[#3a3a3c]"
+      }`}
+    >
+      <span>
+        {on ? "✓ " : ""}
+        {label}
+      </span>
+      <span className="font-mono text-[10px]">{cost}</span>
+    </button>
+  );
+}
+
+function BenchRow({
+  title,
+  notes,
+  children,
+}: {
+  title: string;
+  notes: string[];
+  children: ReactNode;
+}) {
+  return (
+    <div className="mt-3">
+      <p className="font-mono text-[10px] uppercase tracking-wide text-[#6a6560]">{title}</p>
+      <div className="mt-1 flex flex-wrap gap-1.5">{children}</div>
+      {notes
+        .filter((n) => n.length > 0)
+        .map((n) => (
+          <p key={n} className="mt-1 text-[11px] leading-snug text-[#6a6560]">
+            {n}
+          </p>
+        ))}
+    </div>
+  );
+}
+
+function OptionRow<T extends string>({
+  title,
+  opts,
+  value,
+  onPick,
+}: {
+  title: string;
+  opts: { id: T; label: string; cost: number; note: string }[];
+  value: T;
+  onPick: (id: T) => void;
+}) {
+  return (
+    <BenchRow title={title} notes={[opts.find((o) => o.id === value)?.note ?? ""]}>
+      {opts.map((o) => (
+        <BenchChip
+          key={o.id}
+          label={o.label}
+          cost={String(o.cost)}
+          on={o.id === value}
+          onPick={() => onPick(o.id)}
+        />
+      ))}
+    </BenchRow>
+  );
+}
+
+function SetupBench({
+  sp,
+  spec,
+  onClose,
+}: {
+  sp: OwnedSpider;
+  spec: SpiderSpecies;
+  onClose: () => void;
+}) {
+  const cash = useGame((s) => s.cash);
+  const installBuild = useGame((s) => s.installBuild);
+  const [draft, setDraft] = useState<BuildDraft>(() =>
+    sp.build ? draftOf(sp.build) : blankDraft(spec, sp.stage),
+  );
+  const need = passScore(spec);
+  const report = assessBuild(spec, sp.stage, draft);
+  const same = !!sp.build && sameBuild(sp.build, draft);
+  const cost = same ? 0 : buildCost(draft);
+  const short = cash < cost;
+  return (
+    <div className="rounded-[14px] bg-[#efe6d8] p-3 text-left text-[#3a3a3c]">
+      <p className="font-mono text-[11px] uppercase tracking-wide text-[#6a6560]">
+        {sp.build ? `Current setup ${sp.build.score}/10` : "Shop default setup"}
+      </p>
+      <OptionRow
+        title="Vessel"
+        opts={VESSEL_OPTS}
+        value={draft.vessel}
+        onPick={(vessel) => setDraft((d) => ({ ...d, vessel }))}
+      />
+      <OptionRow
+        title="Substrate"
+        opts={SUB_OPTS}
+        value={draft.substrate}
+        onPick={(substrate) => setDraft((d) => ({ ...d, substrate }))}
+      />
+      <BenchRow
+        title="Extras"
+        notes={[`${VENT_OPT.label}: ${VENT_OPT.note}`, `${DEEP_OPT.label}: ${DEEP_OPT.note}`]}
+      >
+        <BenchChip
+          label={VENT_OPT.label}
+          cost={`+${VENT_OPT.cost}`}
+          on={draft.vent}
+          onPick={() => setDraft((d) => ({ ...d, vent: !d.vent }))}
+        />
+        <BenchChip
+          label={DEEP_OPT.label}
+          cost={`+${DEEP_OPT.cost}`}
+          on={draft.deep}
+          onPick={() => setDraft((d) => ({ ...d, deep: !d.deep }))}
+        />
+      </BenchRow>
+      <OptionRow
+        title="Hide"
+        opts={HIDE_OPTS}
+        value={draft.hide}
+        onPick={(hide) => setDraft((d) => ({ ...d, hide }))}
+      />
+      <OptionRow
+        title="Water"
+        opts={WATER_OPTS}
+        value={draft.water}
+        onPick={(water) => setDraft((d) => ({ ...d, water }))}
+      />
+      <div className="sticky bottom-2 z-10 mt-3 rounded-[12px] border border-[#3a3a3c]/15 bg-[#f4eee6] p-2.5 shadow-[0_4px_0_#8a8680]">
+        <p className="font-mono text-[11px] uppercase text-[#3a3a3c]" aria-live="polite">
+          {report.score}/10 · needs {need}
+          {report.score >= WELL_KEPT_SCORE ? " · well kept: +10% value" : ` · ${WELL_KEPT_SCORE}+ is well kept (+10%)`}
+        </p>
+        {report.misses.length ? (
+          <ul className="mt-1 space-y-0.5 text-xs text-[#3a3a3c]">
+            {report.misses.map((m) => (
+              <li key={m}>• {m}</li>
+            ))}
+          </ul>
+        ) : null}
+        {short ? (
+          <p className="mt-1 text-xs text-[#3a3a3c]">
+            Need {cost} chips. You have {cash}.
+          </p>
+        ) : null}
+        <div className="mt-2 flex justify-center gap-2">
+          <Button
+            size="sm"
+            className="rounded-full"
+            disabled={report.score < need || short}
+            onClick={() => {
+              installBuild(sp.id, draft);
+              const now = useGame.getState().colony.find((c) => c.id === sp.id)?.build;
+              if (now && sameBuild(now, draft)) onClose();
+            }}
+          >
+            Install · {same ? "free" : cost}
+          </Button>
+          <Button size="sm" variant="ghost" className="rounded-full" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PetAdoption({ sp, spec }: { sp: OwnedSpider; spec: SpiderSpecies }) {
   const colony = useGame((s) => s.colony);
   const adoptPet = useGame((s) => s.adoptPet);
   const [open, setOpen] = useState(false);
+  const [bench, setBench] = useState(false);
   const [name, setName] = useState("");
-  if (sp.personal || adoptBlockReason(colony, sp.id) !== null) return null;
+  const canAdopt = !sp.personal && adoptBlockReason(colony, sp.id) === null;
+  const canSetup = !sp.wild;
+  if (!canAdopt && !canSetup) return null;
   return (
     <div className="mt-3 text-center">
-      {open ? (
+      {bench && canSetup ? (
+        <SetupBench sp={sp} spec={spec} onClose={() => setBench(false)} />
+      ) : open && canAdopt ? (
         <div className="rounded-[14px] bg-[#efe6d8] p-3 text-[#3a3a3c]">
           <input
             value={name}
@@ -273,9 +477,18 @@ function PetAdoption({ sp }: { sp: OwnedSpider }) {
           </div>
         </div>
       ) : (
-        <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setOpen(true)}>
-          Keep as shop pet
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {canAdopt ? (
+            <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setOpen(true)}>
+              Keep as shop pet
+            </Button>
+          ) : null}
+          {canSetup ? (
+            <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setBench(true)}>
+              Setup
+            </Button>
+          ) : null}
+        </div>
       )}
     </div>
   );
@@ -339,7 +552,7 @@ export function TankView() {
           </Button>
         </div>
         <Tank key={sp.id} sp={sp} spec={spec} />
-        <PetAdoption key={`pet-${sp.id}`} sp={sp} />
+        <PetAdoption key={`pet-${sp.id}`} sp={sp} spec={spec} />
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase text-[#d8dce0]/90">
           <span>{fed === 0 ? "Fed today" : careDue(sp, spec, day).includes("feed") ? "Hungry" : `Fed ${fed}d ago`}</span>
           {premolt ? <span className="text-[#e8a0b8]">Premolt · molts tonight</span> : null}

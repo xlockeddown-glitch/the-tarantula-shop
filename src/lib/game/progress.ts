@@ -184,7 +184,7 @@ export const LOFT_UPGRADES: LoftUpgrade[] = [
     from: 1,
     label: "Back counter",
     cost: 90,
-    need: { sales: 8, cleanNights: 5, hatches: 2, goodBuilds: 0 },
+    need: { sales: 8, cleanNights: 5, hatches: 2, goodBuilds: 2 },
     blurb: "Ten panes and a proper back counter. Feeder crates show up here.",
   },
   {
