@@ -47,6 +47,8 @@ npm run dev
 
 Save data stays in the browser (`localStorage`). **New table** on the HUD wipes it.
 
+Before pushing, run `npm run check:local` (typecheck, build, game tests). `npm install` sets a pre-push hook that runs it automatically; skip it once with `git push --no-verify`.
+
 ## Species
 
 Starters are Curly Hair, Pinktoe, and Chaco Golden Knee — real, hardy beginners. Later unlocks are real tarantulas (and one labeled trade name). Aggressive / Old World stock is harder to sell to casual guests.
