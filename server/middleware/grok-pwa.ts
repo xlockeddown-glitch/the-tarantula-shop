@@ -40,6 +40,8 @@ function injectHeadStreaming(response: Response, host: string): Response {
   const injector = createHeadInjector({
     host,
     site: grokOgIdentity.site,
+    // Explicit: lets a public/og.jpg on disk (preview) win over the bake.
+    cwd: process.cwd(),
   });
   const transformed = response.body!.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
