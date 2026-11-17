@@ -267,7 +267,7 @@ function Row({ label, value, tone }: { label: string; value: string; tone?: stri
   );
 }
 
-function SummaryCard({ card }: { card: Extract<RevealCard, { kind: "summary" }> }) {
+function SummaryCard({ card, day }: { card: Extract<RevealCard, { kind: "summary" }>; day: number }) {
   const spec = card.speciesId ? spiderById(card.speciesId) : undefined;
   const sign = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
   return (
@@ -282,7 +282,7 @@ function SummaryCard({ card }: { card: Extract<RevealCard, { kind: "summary" }> 
         <div className="mt-1">
           <Row label="Sold" value={card.sold === 1 ? "1 animal" : `${card.sold} animals`} />
           <Row label="Took in" value={sign(card.tookIn)} />
-          <Row label="Rent" value={card.rent ? `−${card.rent}` : "0"} />
+          <Row label="Rent" value={card.rent ? `−${card.rent}` : day <= 3 ? "Not due yet" : "Waived"} />
           <Row
             label="Till change"
             value={sign(card.net)}
@@ -314,14 +314,16 @@ function Card({
   card,
   flipped,
   onFlip,
+  day,
 }: {
   card: RevealCard;
   flipped: boolean;
   onFlip: () => void;
+  day: number;
 }) {
   const flipTap = wantsFlip(card);
   const [played, setPlayed] = useState(false);
-  if (card.kind === "summary") return <SummaryCard card={card} />;
+  if (card.kind === "summary") return <SummaryCard card={card} day={day} />;
   const spec = spiderById(card.speciesId);
   const female = card.kind === "molt" && card.sexReveal && card.sex === "f";
   const ring =
@@ -446,7 +448,13 @@ export function RevealDeck() {
           </p>
         ) : null}
       </div>
-      <Card key={top.id} card={top} flipped={flipped} onFlip={() => setFlippedId(top.id)} />
+      <Card
+        key={top.id}
+        card={top}
+        flipped={flipped}
+        onFlip={() => setFlippedId(top.id)}
+        day={morning?.day ?? 0}
+      />
       <div
         className={`flex items-center gap-2 transition-opacity ${flipped ? "opacity-100" : "pointer-events-none opacity-0"}`}
       >
