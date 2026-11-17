@@ -4,6 +4,8 @@ A cozy felt-table game about running a real-species tarantula shop. You list sto
 
 Version **0.1.11**. Early and playable. Not a finished commercial release.
 
+What's next: [ROADMAP.md](ROADMAP.md).
+
 ## How a day goes
 
 1. Pick a starter pack. An adult pair stays on the rack to breed. Juveniles fill the window so you can sell on day one.
