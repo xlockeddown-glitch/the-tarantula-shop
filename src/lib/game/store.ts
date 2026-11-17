@@ -14,7 +14,7 @@ import { forageRoll, forageLabel, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spa
 import { isDone, isLapsed, pickGoal, type Goal, type GoalKind, type GoalSnapshot } from "./goals";
 import { askLadder, budgetMultFor, judgeAsk, personaFor } from "./haggle";
 import { packToColony, type StarterPack } from "./packs";
-import { orderReveals, type MorningSlip, type RevealCard } from "./reveal";
+import { crossedUnlocks, orderReveals, type DayLedger, type MorningSlip, type RevealCard } from "./reveal";
 import {
   BAY_UNITS,
   askableIds,
@@ -25,6 +25,8 @@ import {
   isUnlocked,
   loftUpgrade,
   missingUpgrade,
+  nextUnlock,
+  TIER_UNLOCKS,
   shopCaps,
   SLING_SHELF,
   usedWall,
@@ -44,6 +46,7 @@ import {
   hatchExpect,
   hasStockRoom,
   husbandryNeed,
+  isPremolt,
   makeSling,
   migrateOwned,
   moltIfReady,
@@ -300,6 +303,8 @@ export type GameState = {
   reveals: RevealCard[];
   /** Overnight money slip shown above the reveal deck. */
   morning: MorningSlip | null;
+  /** Books at the start of the current day, for the morning summary. */
+  ledger: DayLedger;
   /** Animal open in the live tank view. Not restored on reload. */
   tankId: string | null;
   goal: Goal | null;
@@ -423,6 +428,7 @@ const blank = (): Omit<
   coachBeat: 0,
   reveals: [],
   morning: null,
+  ledger: { profit: 0, sales: 0, cash: 60 },
   tankId: null,
   goal: null,
   goalsDone: 0,
@@ -486,6 +492,11 @@ export const useGame = create<GameState>((set, get) => ({
         goalsDone: parsed.goalsDone ?? 0,
         goalSwapDay: parsed.goalSwapDay ?? 0,
         neighborHelped: parsed.neighborHelped ?? false,
+        ledger: parsed.ledger ?? {
+          profit: parsed.profit ?? 0,
+          sales: parsed.stats?.sales ?? 0,
+          cash: parsed.cash ?? 60,
+        },
         view: parsed.started ? "world" : "title",
       });
     } catch {
@@ -1819,6 +1830,30 @@ export const useGame = create<GameState>((set, get) => ({
       losses: s.stats.losses + lost.length,
     };
     const canGet = SPIDER_SPECIES.filter((sp) => isUnlocked(sp.id, s.profit));
+    if (!ended) {
+      const ledger = s.ledger ?? { profit: s.profit, sales: stats.sales, cash: s.cash };
+      const fresh = crossedUnlocks(TIER_UNLOCKS, ledger.profit, s.profit).filter((id) => spiderById(id));
+      if (fresh.length) cards.push({ kind: "unlock", id: nid("r"), speciesId: fresh[0]!, ids: fresh });
+      const premoltNames = colony
+        .filter((c) => isPremolt(c))
+        .map((c) => (c.personal && c.name ? c.name : (spiderById(c.speciesId)?.common ?? "")))
+        .filter(Boolean);
+      const firstPre = colony.find((c) => isPremolt(c));
+      const nxt = nextUnlock(s.profit);
+      cards.push({
+        kind: "summary",
+        id: nid("r"),
+        speciesId: (firstPre ?? colony[0])?.speciesId ?? "",
+        sold: Math.max(0, stats.sales - ledger.sales),
+        tookIn: Math.max(0, s.profit - ledger.profit),
+        rent: rentPaid,
+        net: cash - ledger.cash,
+        premolt: premoltNames.slice(0, 4),
+        premoltMore: Math.max(0, premoltNames.length - 4),
+        nextNeed: nxt ? nxt.need : null,
+        nextHint: nxt ? nxt.hint : "",
+      });
+    }
     const openKeys = new Set(keepOrders.map((o) => `${o.speciesId}:${o.stage}:${o.sex}`));
     const fresh = rollShipOrders(nextDay, orderN, canGet).filter((o) => !openKeys.has(`${o.speciesId}:${o.stage}:${o.sex}`));
     const nextOrders = [...keepOrders, ...fresh].slice(0, 4);
@@ -1848,6 +1883,7 @@ export const useGame = create<GameState>((set, get) => ({
       view: "world",
       coachBeat: nextCoach(s.coachBeat, 3),
       neighborHelped,
+      ledger: { profit: s.profit, sales: stats.sales, cash },
       reveals: ended ? [] : orderReveals(cards),
       morning: ended
         ? null
@@ -1860,7 +1896,6 @@ export const useGame = create<GameState>((set, get) => ({
     });
     if (ended) get().toast("Locks changed.");
     else if (lost.length) get().toast(`${lost.length} didn't make the night.`);
-    else if (!cards.length) get().toast(`Day ${nextDay}.`);
     persist({ ...get() });
   },
 
