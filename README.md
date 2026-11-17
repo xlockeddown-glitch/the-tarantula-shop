@@ -2,7 +2,7 @@
 
 A cozy felt-table game about running a real-species tarantula shop. You list stock in the window, breed a pair when you can, hang portraits you earn, and — once Elizabeth has the till — walk a candy-colored trail looking for wild slings.
 
-Version **0.1.11**. Early and playable. Not a finished commercial release.
+Version **0.1.12**. Early and playable. Not a finished commercial release.
 
 What's next: [ROADMAP.md](ROADMAP.md).
 

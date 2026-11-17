@@ -9,7 +9,7 @@ import { useGame } from "@/lib/game/store";
 
 /** Cards that are worth a tap to flip. Everything else deals face-up. */
 function wantsFlip(card: RevealCard) {
-  return card.kind === "molt" || card.kind === "sac";
+  return card.kind === "molt" || card.kind === "sac" || card.kind === "unlock";
 }
 
 /** The overnight molt, played on the back of the card before it flips. */
@@ -64,12 +64,14 @@ function MoltCanvas({
 
 function backLabel(card: RevealCard) {
   if (card.kind === "sac") return "Egg sac";
+  if (card.kind === "unlock") return "New stock";
   if (card.kind === "molt") return card.name ? `${card.name} molted overnight` : "Molted overnight";
   return "Overnight";
 }
 
 function backHint(card: RevealCard) {
   if (card.kind === "sac") return "Tap to open it up";
+  if (card.kind === "unlock") return "Tap to see what's on the Truck";
   if (card.kind === "molt" && card.sexReveal) return "Tap to check the sex";
   return "Tap to see it";
 }
@@ -219,6 +221,26 @@ function FaceBody({ card }: { card: RevealCard }) {
           </p>
         </>
       );
+    case "unlock": {
+      const names = card.ids.map((id) => spiderById(id)?.common).filter(Boolean);
+      return (
+        <>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">
+            Now on the Truck
+          </p>
+          <p className="reveal-pop font-display text-2xl text-[#3a3a3c]">
+            {names.length === 1 ? names[0] : `${names.length} new species`}
+          </p>
+          {names.length > 1 ? (
+            <p className="mt-1 text-sm text-[#5a5652]">{names.join(", ")}.</p>
+          ) : (
+            <p className="mt-1 text-sm text-[#5a5652]">Your takings opened a new tier.</p>
+          )}
+        </>
+      );
+    }
+    case "summary":
+      return null;
     case "held":
       return (
         <>
@@ -234,6 +256,60 @@ function FaceBody({ card }: { card: RevealCard }) {
   }
 }
 
+function Row({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-dashed border-[#3a3a3c]/15 py-1.5">
+      <span className="text-sm text-[#5a5652]">{label}</span>
+      <span className="font-mono text-base" style={{ color: tone ?? "#3a3a3c" }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function SummaryCard({ card }: { card: Extract<RevealCard, { kind: "summary" }> }) {
+  const spec = card.speciesId ? spiderById(card.speciesId) : undefined;
+  const sign = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : "0");
+  return (
+    <div className="deal-in mx-auto flex h-[min(68dvh,520px)] w-[min(86vw,340px)] flex-col overflow-hidden rounded-[22px] border-4 border-[#5aa8a0] bg-[#efe6d8] shadow-[0_16px_0_#2e3432]">
+      {spec ? (
+        <div className="relative h-[30%] min-h-0 shrink-0">
+          <img src={feltCardArt(spec.id, "sale")} alt="" className="size-full object-cover" />
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pt-3 pb-4">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">Yesterday</p>
+        <div className="mt-1">
+          <Row label="Sold" value={card.sold === 1 ? "1 animal" : `${card.sold} animals`} />
+          <Row label="Took in" value={sign(card.tookIn)} />
+          <Row label="Rent" value={card.rent ? `−${card.rent}` : "0"} />
+          <Row
+            label="Till change"
+            value={sign(card.net)}
+            tone={card.net > 0 ? "#3f8a82" : card.net < 0 ? "#c45c6a" : undefined}
+          />
+        </div>
+        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">
+          In premolt
+        </p>
+        <p className="mt-0.5 text-sm text-[#3a3a3c]">
+          {card.premolt.length
+            ? `${card.premolt.join(", ")}${card.premoltMore ? ` and ${card.premoltMore} more` : ""}. Molts coming.`
+            : "Nobody right now."}
+        </p>
+        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-[#6a6560]">
+          Next on the Truck
+        </p>
+        <p className="mt-0.5 text-sm text-[#3a3a3c]">
+          {card.nextNeed === null
+            ? "Every species is open."
+            : `${card.nextNeed} more in takings opens ${card.nextHint}.`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Card({
   card,
   flipped,
@@ -245,6 +321,7 @@ function Card({
 }) {
   const flipTap = wantsFlip(card);
   const [played, setPlayed] = useState(false);
+  if (card.kind === "summary") return <SummaryCard card={card} />;
   const spec = spiderById(card.speciesId);
   const female = card.kind === "molt" && card.sexReveal && card.sex === "f";
   const ring =
@@ -254,7 +331,7 @@ function Card({
         ? "#e8a0b8"
         : card.kind === "molt" && card.sexReveal
           ? "#7eb4e8"
-          : card.kind === "sac"
+          : card.kind === "sac" || card.kind === "unlock"
             ? "#c4a04a"
             : "#5aa8a0";
   return (
@@ -294,7 +371,9 @@ function Card({
                 {backLabel(card)}
               </p>
               <p className="font-display mt-1 text-7xl leading-none text-[#3a3a3c]">?</p>
-              <p className="mt-2 font-display text-lg text-[#3a3a3c]">{spec?.common}</p>
+              {card.kind === "unlock" ? null : (
+                <p className="mt-2 font-display text-lg text-[#3a3a3c]">{spec?.common}</p>
+              )}
               <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-[#c47858]">
                 {backHint(card)}
               </p>
@@ -318,7 +397,7 @@ function Card({
           </div>
         </div>
       </button>
-      {flipped && (female || (card.kind === "sac" && card.eggs > 0)) ? (
+      {flipped && (female || card.kind === "unlock" || (card.kind === "sac" && card.eggs > 0)) ? (
         <Sparkles color={female ? "#e8a0b8" : "#c4a04a"} />
       ) : null}
     </div>
@@ -360,12 +439,9 @@ export function RevealDeck() {
         </p>
         {isMorning && seen === 0 ? (
           <p className="mt-1 font-mono text-xs text-[#d8dce0]/90">
-            {morning!.rent
-              ? `Rent −${morning!.rent}`
-              : morning!.day <= 3
-                ? "No rent yet"
-                : "Rent waived"}
-            {" · "}
+            {top.kind === "summary"
+              ? null
+              : `${morning!.rent ? `Rent −${morning!.rent}` : morning!.day <= 3 ? "No rent yet" : "Rent waived"} · `}
             {morning!.cash} chips in the till
           </p>
         ) : null}
