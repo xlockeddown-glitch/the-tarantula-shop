@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assessBuild, blankDraft, migrateBuild, passScore, starterBuild } from "./enclosure.ts";
+import { SPECIES_PAINT } from "./look.ts";
 import { SPIDER_SPECIES, STAGE_ORDER, spiderById } from "./spiders.ts";
 
 const need = (id: string) => {
@@ -73,4 +74,10 @@ test("blank bench draft is cheap and never the full answer", () => {
       const blank = assessBuild(s, st, blankDraft(s, st)).score;
       assert.ok(blank < 10, `${s.id} ${st} blank scored ${blank}`);
     }
+});
+
+test("every species in SPIDER_SPECIES has a tailored palette in SPECIES_PAINT", () => {
+  for (const s of SPIDER_SPECIES) {
+    assert.ok(SPECIES_PAINT[s.id], `missing SPECIES_PAINT entry for ${s.id}`);
+  }
 });

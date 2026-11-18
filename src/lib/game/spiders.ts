@@ -5,7 +5,6 @@ export type SpiderLife = "arboreal" | "terrestrial" | "fossorial";
 export type SpiderRarity = "common" | "uncommon" | "rare";
 export type SpiderHumidity = "arid" | "dry" | "slight" | "crossvent";
 export type SpiderTemper = "docile" | "skittish" | "defensive";
-export type ShopMode = "open" | "closed" | "shipping";
 
 export type SpiderSpecies = {
   id: string;
@@ -100,9 +99,6 @@ export const CLUTCH_EGGS: Record<string, number> = {
 };
 
 export const GBB_ID = "chromatopelma-cyaneopubescens";
-export const HOUSE_AVIC = "avicularia-purpurea";
-export const STOCK_CAP = { sling: 25, juvenile: 10, adult: 5 } as const;
-export const TANK_COST = { sling: 4, juvenile: 8, adult: 16, breed: 22 } as const;
 export const FEEDER_PACK = { qty: 8, cost: 2 } as const;
 export const FEEDER_CRATE = { qty: 28, cost: 8 } as const;
 export const RENT_PER_NIGHT = 10;
@@ -187,43 +183,8 @@ export const KIND_LABEL: Record<SpiderKind, string> = {
   jumper: "Jumper",
 };
 
-export const HUMIDITY_LABEL: Record<SpiderHumidity, string> = {
-  arid: "keep dry",
-  dry: "dry corner",
-  slight: "mist a wall",
-  crossvent: "air, not swamp",
-};
-
-export const TEMPER_LABEL: Record<SpiderTemper, string> = {
-  docile: "Mild",
-  skittish: "Timid",
-  defensive: "Defensive",
-};
-
-export function lifeType(s: SpiderSpecies): "Arboreal" | "Terrestrial" | "Fossorial" {
-  if (s.life === "fossorial") return "Fossorial";
-  if (s.life === "arboreal" || s.kind === "arboreal") return "Arboreal";
-  return "Terrestrial";
-}
-
-export function listingTitle(s: SpiderSpecies) {
-  return `${s.latin} (${s.common})`;
-}
-
-export type RackFilter = "all" | "terrestrial" | "arboreal" | "old-world" | "beginner";
-
-export function matchesFilter(s: SpiderSpecies, f: RackFilter) {
-  if (f === "all") return true;
-  if (f === "old-world") return s.ow;
-  if (f === "beginner") return s.beginner;
-  if (f === "arboreal") return s.life === "arboreal" || s.kind === "arboreal" || s.kind === "semi";
-  if (f === "terrestrial") return s.life !== "arboreal";
-  return true;
-}
-
 export type SpiderStage = "sling" | "juvenile" | "adult";
 export type TankSize = "sling" | "juvenile" | "adult";
-export type SpiderVisual = "pinktoe" | "gbb" | "terrestrial" | "oldworld" | "jumper";
 export type SpiderSex = "m" | "f" | "u";
 
 export type OwnedSpider = {
@@ -290,25 +251,6 @@ export type JournalEntry = { id: string; day: number; title: string; body: strin
 export const STAGE_ORDER: SpiderStage[] = ["sling", "juvenile", "adult"];
 export const STAGE_DAYS: Record<SpiderStage, number> = { sling: 6, juvenile: 12, adult: 999 };
 export const STAGE_LABEL: Record<SpiderStage, string> = { sling: "Sling", juvenile: "Juvenile", adult: "Adult" };
-export const TANK_RANK: Record<TankSize, number> = { sling: 0, juvenile: 1, adult: 2 };
-export const SEX_LABEL: Record<SpiderSex, string> = { m: "♂", f: "♀", u: "unsexed" };
-
-export function visualOf(speciesId: string): SpiderVisual {
-  const s = spiderById(speciesId);
-  if (!s) return "terrestrial";
-  if (s.ow) return "oldworld";
-  if (s.kind === "arboreal") return "pinktoe";
-  if (s.id === GBB_ID) return "gbb";
-  return "terrestrial";
-}
-
-export function minTankFor(stage: SpiderStage): TankSize {
-  return stage;
-}
-
-export function tankFits(stage: SpiderStage, tank: TankSize) {
-  return TANK_RANK[tank] >= TANK_RANK[minTankFor(stage)];
-}
 
 /** Molts at the next Sleep: dark abdomen, off food. */
 export function isPremolt(sp: OwnedSpider) {
@@ -448,18 +390,6 @@ export function fairAsk(sp: OwnedSpider): number {
 export const WELL_KEPT_SCORE = 9;
 export function isWellKept(sp: OwnedSpider) {
   return !!sp.build && sp.build.score >= WELL_KEPT_SCORE;
-}
-
-export function saleChance(ask: number, fair: number): number {
-  if (ask <= fair) return 0.88;
-  if (ask <= fair * 1.25) return 0.48;
-  if (ask <= fair * 1.6) return 0.18;
-  return 0.05;
-}
-
-/** Hard ceiling so “they asked for it” cannot take any price. */
-export function askCeiling(fair: number, offer: number) {
-  return Math.round(Math.max(fair, offer) * 1.15);
 }
 
 export type ShopCustomer = {

@@ -84,13 +84,21 @@ function authPopupPlugin(): Plugin {
             return;
           }
 
-          const host = String(
+          const rawHost = String(
             req.headers["x-forwarded-host"] ?? req.headers.host ?? "localhost:8080",
-          );
-          const proto = String(
+          )
+            .split(",")[0]
+            ?.trim();
+          const host =
+            rawHost && /^[a-zA-Z0-9.:[\]-]+$/.test(rawHost) ? rawHost : "localhost:8080";
+          const rawProto = String(
             req.headers["x-forwarded-proto"] ??
               ((req.socket as { encrypted?: boolean } | undefined)?.encrypted ? "https" : "http"),
-          );
+          )
+            .split(",")[0]
+            ?.trim()
+            .toLowerCase();
+          const proto = rawProto === "https" ? "https" : "http";
           const requestHeaders = new Headers();
           for (const [key, value] of Object.entries(req.headers)) {
             if (value === undefined) continue;

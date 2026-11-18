@@ -1,4 +1,3 @@
-import { cribsForTier } from "./loftRoom";
 import { neglectDays } from "./progress";
 import { isPremolt, spiderById, type OwnedSpider, type SpiderSpecies, type SpiderStage } from "./spiders";
 
@@ -95,38 +94,4 @@ export function applyTendAll(
     return row;
   });
   return { colony: next, feeders: bin, tended, hungry };
-}
-
-export type WallBay = { id: string; kind: SpiderStage };
-
-export type FloorTank = {
-  i: number;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  spider: OwnedSpider | null;
-};
-
-export function defaultWall(): WallBay[] {
-  return [
-    { id: "bay-a", kind: "adult" },
-    { id: "bay-j1", kind: "juvenile" },
-    { id: "bay-j2", kind: "juvenile" },
-    { id: "bay-s1", kind: "sling" },
-    { id: "bay-s2", kind: "sling" },
-    { id: "bay-s3", kind: "sling" },
-    { id: "bay-s4", kind: "sling" },
-  ];
-}
-
-export function floorTanks(colony: OwnedSpider[], tier = 0): FloorTank[] {
-  const slots = cribsForTier(tier);
-  const listed = colony.filter((c) => c.listed && !c.personal);
-  const order = [
-    ...listed.filter((c) => c.stage === "adult"),
-    ...listed.filter((c) => c.stage === "juvenile"),
-    ...listed.filter((c) => c.stage === "sling"),
-  ];
-  return slots.map((s, i) => ({ i, ...s, spider: order[i] ?? null }));
 }

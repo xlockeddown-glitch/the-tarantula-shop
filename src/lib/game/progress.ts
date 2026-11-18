@@ -88,19 +88,6 @@ export function isUnlocked(id: string, profit: number) {
   return unlockedIds(profit).has(id);
 }
 
-export const BAY_UNITS = { sling: 1, juvenile: 2, adult: 4 } as const;
-
-export function wallUnits(tier: number) {
-  if (tier <= 0) return 12;
-  if (tier === 1) return 16;
-  if (tier === 2) return 20;
-  return 24;
-}
-
-export function usedWall(wall: { kind: keyof typeof BAY_UNITS }[]) {
-  return wall.reduce((n, b) => n + BAY_UNITS[b.kind], 0);
-}
-
 export const SLING_SHELF = { extra: 8, cost: 18, max: 3 } as const;
 
 export function shopCaps(tier: number, shelves = 1): StockCaps {
@@ -216,10 +203,4 @@ export function neglectDays(spec: SpiderSpecies): number {
   if (spec.ow || spec.price >= 60) return 2;
   if (spec.price >= 36 || spec.rarity === "rare") return 3;
   return 5;
-}
-
-export function careStrictness(spec: SpiderSpecies): "soft" | "mid" | "hard" {
-  if (spec.ow || spec.price >= 54) return "hard";
-  if (spec.price >= 30) return "mid";
-  return "soft";
 }

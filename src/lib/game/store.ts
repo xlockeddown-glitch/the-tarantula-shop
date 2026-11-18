@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { femaleRestDays, pairRisk, restLeft } from "./breed";
-import { applyTendAll, careDue, defaultWall, needsMist, needsWaterBowl, atRisk, wouldDie, type WallBay } from "./care";
+import { applyTendAll, careDue, needsMist, needsWaterBowl, atRisk, wouldDie } from "./care";
 import {
   assessBuild,
   buildCost,
@@ -10,13 +10,12 @@ import {
   sameBuild,
   type EnclosureBuild,
 } from "./enclosure";
-import { forageRoll, forageLabel, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spaceLabel, TRAIL, FLIPS_PER_DAY, type TrailCard } from "./field";
+import { forageRoll, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spaceLabel, type TrailCard } from "./field";
 import { isDone, isLapsed, pickGoal, type Goal, type GoalKind, type GoalSnapshot } from "./goals";
 import { askLadder, budgetMultFor, judgeAsk, personaFor } from "./haggle";
 import { packToColony, type StarterPack } from "./packs";
 import { orderReveals, type MorningSlip, type RevealCard } from "./reveal";
 import {
-  BAY_UNITS,
   askableIds,
   dailyGuests,
   displaySlots,
@@ -27,8 +26,6 @@ import {
   missingUpgrade,
   shopCaps,
   SLING_SHELF,
-  usedWall,
-  wallUnits,
   windowSlots,
   type DisplayPin,
   type LoftStats,
@@ -69,9 +66,14 @@ import {
 } from "./spiders";
 import type { ReturningGuest } from "./spiders";
 
-export type GameView = "title" | "pack" | "world" | "shop" | "loft" | "wholesale" | "notes" | "ledger" | "field" | "binder";
+export type GameView = "title" | "pack" | "world" | "loft" | "wholesale" | "notes" | "ledger" | "field" | "binder";
 
 const SAVE = "spinneret-save-v5";
+
+export function saveKeyForUser(userId?: string | null): string {
+  const trimmed = userId?.trim();
+  return trimmed && trimmed !== "dev-user" ? `${SAVE}:${trimmed}` : SAVE;
+}
 
 function nid(p: string) {
   return `${p}-${Math.random().toString(36).slice(2, 8)}`;
@@ -101,8 +103,8 @@ function tallySale(
 
 function persist(s: GameState): boolean {
   try {
-    const { toasts: _t, ...rest } = s;
-    localStorage.setItem(SAVE, JSON.stringify(rest));
+    const { toasts: _t, userId: _u, ...rest } = s;
+    localStorage.setItem(saveKeyForUser(s.userId), JSON.stringify(rest));
     return true;
   } catch {
     return false;
@@ -250,9 +252,9 @@ export function goalSnapshot(s: GameState): GoalSnapshot {
 }
 
 export type GameState = {
+  userId: string | null;
   started: boolean;
   packChosen: boolean;
-  ended: string | null;
   view: GameView;
   shopName: string;
   playerName: string;
@@ -268,9 +270,7 @@ export type GameState = {
   shopTier: number;
   elizabethHired: boolean;
   slingShelves: number;
-  wall: WallBay[];
   colony: OwnedSpider[];
-  selectedId: string | null;
   clutches: Clutch[];
   customers: ShopCustomer[];
   served: string[];
@@ -286,8 +286,6 @@ export type GameState = {
   feltBreeds: string[];
   soldCounts: Record<string, number>;
   breedCounts: Record<string, number>;
-  fieldSearched: string[];
-  trailAt: number;
   trailPawn: number;
   trailDeck: TrailCard[];
   trailDraws: number;
@@ -308,7 +306,7 @@ export type GameState = {
   goalSwapDay: number;
   /** The neighbor's 25 chips only come once per save. */
   neighborHelped: boolean;
-  hydrate: () => void;
+  hydrate: (userId?: string | null) => void;
   startNew: (shop: string, keeper: string) => void;
   reset: () => void;
   choosePack: (pack: StarterPack) => void;
@@ -317,23 +315,15 @@ export type GameState = {
   dismissToast: (id: string) => void;
   openShop: () => void;
   closeShop: () => void;
-  talkTo: (customerId: string) => void;
   tend: (id: string, kind: "feed" | "water" | "mist" | "clean") => void;
-  feed: (id: string) => void;
   careAll: () => void;
-  careRack: () => void;
   listSpider: (id: string, listed: boolean) => void;
-  dumpListed: (id: string) => void;
-  nameSpider: (id: string, name: string) => void;
   adoptPet: (id: string, name: string) => void;
   installBuild: (id: string, draft: Omit<EnclosureBuild, "score">) => void;
   buyWholesale: (speciesId: string, stage: SpiderStage) => void;
   buyFeeders: () => void;
   buyFeederCrate: () => void;
   buySlingShelf: () => void;
-  addBay: (kind: SpiderStage) => void;
-  removeBay: (id: string) => void;
-  cycleBay: (id: string) => void;
   orderSlingLot: (speciesId: string) => void;
   sellSlingLot: (speciesId: string) => void;
   serveCustomer: (customerId: string, spiderId: string, ask: number) => void;
@@ -349,8 +339,6 @@ export type GameState = {
   drawTrailCard: () => void;
   resolveTrailCard: () => void;
   dismissTrailFind: () => void;
-  walkTrail: (dir: number) => void;
-  searchField: (spotId?: string) => void;
   leaveField: () => void;
   pinDisplay: (speciesId: string, kind: "sale" | "breed") => void;
   unpinDisplay: (index: number) => void;
@@ -368,16 +356,16 @@ export type GameState = {
 const blank = (): Omit<
   GameState,
   | "hydrate" | "startNew" | "reset" | "choosePack" | "setView" | "toast" | "dismissToast"
-  | "openShop" | "closeShop" | "talkTo" | "tend" | "feed" | "careAll" | "careRack"
-  | "listSpider" | "dumpListed" | "nameSpider" | "adoptPet" | "installBuild" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
-  | "buySlingShelf" | "addBay" | "removeBay" | "cycleBay" | "orderSlingLot" | "sellSlingLot"
+  | "openShop" | "closeShop" | "tend" | "careAll"
+  | "listSpider" | "adoptPet" | "installBuild" | "buyWholesale" | "buyFeeders" | "buyFeederCrate"
+  | "buySlingShelf" | "orderSlingLot" | "sellSlingLot"
   | "serveCustomer" | "refuseCustomer" | "bookGuest" | "fillOrder" | "startBreed" | "collectClutch"
-  | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "walkTrail" | "searchField" | "leaveField"
+  | "expandShop" | "hireElizabeth" | "elizabethCover" | "enterField" | "drawTrailCard" | "resolveTrailCard" | "dismissTrailFind" | "leaveField"
   | "pinDisplay" | "unpinDisplay" | "skipCoach" | "endDay" | "nextReveal" | "clearReveals" | "openTank" | "closeTank" | "checkGoal" | "swapGoal" | "noteHandFeed"
 > => ({
+  userId: null,
   started: false,
   packChosen: false,
-  ended: null,
   view: "title",
   shopName: "The Tarantula Shop",
   playerName: "",
@@ -393,9 +381,7 @@ const blank = (): Omit<
   shopTier: 0,
   elizabethHired: false,
   slingShelves: 1,
-  wall: defaultWall(),
   colony: [],
-  selectedId: null,
   clutches: [],
   customers: [],
   served: [],
@@ -411,8 +397,6 @@ const blank = (): Omit<
   feltBreeds: [],
   soldCounts: {},
   breedCounts: {},
-  fieldSearched: [],
-  trailAt: 0,
   trailPawn: 0,
   trailDeck: [],
   trailDraws: 0,
@@ -433,10 +417,16 @@ const blank = (): Omit<
 export const useGame = create<GameState>((set, get) => ({
   ...blank(),
 
-  hydrate: () => {
+  hydrate: (userId) => {
     try {
-      const raw = localStorage.getItem(SAVE);
-      if (!raw) return;
+      const nextUserId = userId !== undefined ? userId : get().userId;
+      const raw = localStorage.getItem(saveKeyForUser(nextUserId));
+      if (!raw) {
+        if (userId !== undefined && nextUserId !== get().userId) {
+          set({ ...blank(), userId: nextUserId });
+        }
+        return;
+      }
       const parsed = JSON.parse(raw) as Partial<GameState>;
       const day = parsed.day ?? 1;
       const colony = ((parsed.colony as OwnedSpider[] | undefined) ?? []).map((c, i) => {
@@ -449,8 +439,8 @@ export const useGame = create<GameState>((set, get) => ({
       set({
         ...blank(),
         ...parsed,
+        userId: nextUserId ?? null,
         colony,
-        wall: Array.isArray(parsed.wall) && parsed.wall.length ? parsed.wall : defaultWall(),
         stats: parsed.stats ?? emptyStats(),
         journal: Array.isArray(parsed.journal) ? parsed.journal : [],
         returning: Array.isArray(parsed.returning) ? parsed.returning : [],
@@ -462,8 +452,6 @@ export const useGame = create<GameState>((set, get) => ({
         feltBreeds: Array.isArray(parsed.feltBreeds) ? parsed.feltBreeds : [],
         soldCounts: parsed.soldCounts ?? {},
         breedCounts: parsed.breedCounts ?? {},
-        fieldSearched: Array.isArray(parsed.fieldSearched) ? parsed.fieldSearched : [],
-        trailAt: parsed.trailAt ?? 0,
         trailPawn: parsed.trailPawn ?? 0,
         trailDeck: Array.isArray(parsed.trailDeck) ? parsed.trailDeck : [],
         trailDraws: parsed.trailDraws ?? 0,
@@ -494,8 +482,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   startNew: (shop, keeper) => {
+    const userId = get().userId;
     set({
       ...blank(),
+      userId,
       started: true,
       packChosen: false,
       shopName: shop.trim() || "The Tarantula Shop",
@@ -506,12 +496,13 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   reset: () => {
+    const userId = get().userId;
     try {
-      localStorage.removeItem(SAVE);
+      localStorage.removeItem(saveKeyForUser(userId));
     } catch {
       /* */
     }
-    set({ ...blank() });
+    set({ ...blank(), userId });
   },
 
   choosePack: (pack) => {
@@ -644,31 +635,6 @@ export const useGame = create<GameState>((set, get) => ({
     persist({ ...get() });
   },
 
-  talkTo: (customerId) => {
-    const s = get();
-    const cust = s.customers.find((c) => c.id === customerId);
-    if (!cust) return;
-    const matches =
-      cust.kind === "browse"
-        ? shopSpiders(s.colony).filter((c) => c.listed)
-        : listedMatches(s.colony, cust.want);
-    if (matches.length) {
-      const c = dressCustomer(cust);
-      get().serveCustomer(cust.id, matches[0]!.id, askLadder(fairAsk(matches[0]!), c.persona!).opener);
-      return;
-    }
-    const spec = spiderById(cust.want);
-    get().toast(
-      cust.kind === "browse"
-        ? `${cust.name} is just looking.`
-        : `${cust.name} wants ${spec?.common ?? "a species"}. Close up to buy or breed it.`,
-    );
-  },
-
-  careRack: () => {
-    get().toast("Tap a jar on the table, or hit Tend all before Sleep.");
-  },
-
   tend: (id, kind) => {
     const s = get();
     const sp = s.colony.find((c) => c.id === id);
@@ -711,10 +677,6 @@ export const useGame = create<GameState>((set, get) => ({
     persist({ ...get() });
   },
 
-  feed: (id) => {
-    get().tend(id, "feed");
-  },
-
   careAll: () => {
     const s = get();
     const care = applyTendAll(s.colony, s.feeders, s.day);
@@ -749,25 +711,6 @@ export const useGame = create<GameState>((set, get) => ({
       ),
     });
     get().toast(listed ? "In the window." : "Back on the rack.");
-    persist({ ...get() });
-  },
-
-  dumpListed: (id) => {
-    const s = get();
-    const sp = s.colony.find((c) => c.id === id);
-    if (!sp || !sp.listed) return;
-    const daysOut = s.day - (sp.listedDay ?? 0);
-    if (daysOut < 2) {
-      get().toast("Give the window two days before the truck takes it.");
-      return;
-    }
-    const pay = Math.max(6, Math.round(fairAsk(sp) * 0.7));
-    set({
-      cash: s.cash + pay,
-      colony: s.colony.filter((c) => c.id !== id),
-      stats: { ...s.stats, sales: s.stats.sales + 1 },
-    });
-    get().toast(`Truck took it for ${pay}. Pane is free.`);
     persist({ ...get() });
   },
 
@@ -827,11 +770,6 @@ export const useGame = create<GameState>((set, get) => ({
     persist({ ...get() });
   },
 
-  nameSpider: (id, name) => {
-    set((s) => ({ colony: s.colony.map((c) => (c.id === id ? { ...c, name } : c)) }));
-    persist({ ...get() });
-  },
-
   buyWholesale: (speciesId, stage) => {
     const s = get();
     const spec = spiderById(speciesId);
@@ -866,7 +804,6 @@ export const useGame = create<GameState>((set, get) => ({
       serial: serial + 1,
       stats: { ...s.stats, truckBuys: (s.stats.truckBuys ?? 0) + 1 },
       colony: [...s.colony, bought],
-      selectedId: bought.id,
     });
     get().toast(`${spec.common} on the rack.`);
     persist({ ...get() });
@@ -909,43 +846,6 @@ export const useGame = create<GameState>((set, get) => ({
     }
     set({ cash: s.cash - SLING_SHELF.cost, slingShelves: s.slingShelves + 1 });
     get().toast(`Vial shelf up. +${SLING_SHELF.extra} sling cups.`);
-    persist({ ...get() });
-  },
-
-  addBay: (kind) => {
-    const s = get();
-    const cap = wallUnits(s.shopTier);
-    if (usedWall(s.wall) + BAY_UNITS[kind] > cap) {
-      get().toast(`Wall is ${usedWall(s.wall)}/${cap} units. Need ${BAY_UNITS[kind]} for a ${kind}.`);
-      return;
-    }
-    set({ wall: [...s.wall, { id: nid("bay"), kind }] });
-    persist({ ...get() });
-  },
-
-  removeBay: (id) => {
-    const s = get();
-    if (s.wall.length <= 1) {
-      get().toast("Keep at least one crib on the wall.");
-      return;
-    }
-    set({ wall: s.wall.filter((b) => b.id !== id) });
-    persist({ ...get() });
-  },
-
-  cycleBay: (id) => {
-    const s = get();
-    const order: SpiderStage[] = ["sling", "juvenile", "adult"];
-    const nextWall = s.wall.map((b) => {
-      if (b.id !== id) return b;
-      const nxt = order[(order.indexOf(b.kind) + 1) % order.length]!;
-      return { ...b, kind: nxt };
-    });
-    if (usedWall(nextWall) > wallUnits(s.shopTier)) {
-      get().toast("Not enough wall for a bigger crib. Split or expand.");
-      return;
-    }
-    set({ wall: nextWall });
     persist({ ...get() });
   },
 
@@ -994,11 +894,15 @@ export const useGame = create<GameState>((set, get) => ({
     const take = lot.slice(0, 3);
     const ids = new Set(take.map((c) => c.id));
     const pay = lotPayout(spec);
+    const sale = tallySale(s.soldCounts, s.feltSales ?? [], s.feltAlbum ?? [], speciesId);
     set({
       cash: s.cash + pay,
       profit: s.profit + pay,
       stats: { ...s.stats, sales: s.stats.sales + 1 },
       colony: s.colony.filter((c) => !ids.has(c.id)),
+      soldCounts: sale.soldCounts,
+      feltSales: sale.feltSales,
+      feltAlbum: sale.feltAlbum,
     });
     get().toast(`Sold 3 ${spec.common} slings wholesale · ${pay}.`);
     persist({ ...get() });
@@ -1127,12 +1031,16 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     const spec = spiderById(sp.speciesId);
+    const sale = tallySale(s.soldCounts, s.feltSales ?? [], s.feltAlbum ?? [], sp.speciesId);
     set({
       cash: s.cash + order.pay,
       profit: s.profit + order.pay,
       stats: { ...s.stats, sales: s.stats.sales + 1, ordersFilled: (s.stats.ordersFilled ?? 0) + 1 },
       colony: s.colony.filter((c) => c.id !== spiderId),
       orders: s.orders.filter((o) => o.id !== orderId),
+      soldCounts: sale.soldCounts,
+      feltSales: sale.feltSales,
+      feltAlbum: sale.feltAlbum,
       journal: [
         {
           id: nid("j"),
@@ -1168,6 +1076,10 @@ export const useGame = create<GameState>((set, get) => ({
     if (f.personal || m.personal || f.inBreed || m.inBreed) return;
     if (restLeft(f, s.day) > 0) {
       get().toast(`She rests ${restLeft(f, s.day)} more night${restLeft(f, s.day) === 1 ? "" : "s"}.`);
+      return;
+    }
+    if (restLeft(m, s.day) > 0) {
+      get().toast(`He rests ${restLeft(m, s.day)} more night${restLeft(m, s.day) === 1 ? "" : "s"}.`);
       return;
     }
     if (s.clutches.some((c) => c.femaleId === f.id)) {
@@ -1566,50 +1478,6 @@ export const useGame = create<GameState>((set, get) => ({
     persist({ ...get() });
   },
 
-  walkTrail: (dir) => {
-    const s = get();
-    const next = Math.max(0, Math.min(TRAIL.length - 1, (s.trailAt ?? 0) + dir));
-    set({ trailAt: next });
-    get().toast(TRAIL[next]!.label);
-  },
-
-  searchField: (spotId) => {
-    const s = get();
-    const stop = TRAIL[s.trailAt ?? 0] ?? TRAIL[0]!;
-    const id = spotId ?? stop.id;
-    if ((s.fieldSearched?.length ?? 0) >= FLIPS_PER_DAY) {
-      get().toast("Three flips today. Sleep and try again.");
-      return;
-    }
-    if (s.fieldSearched.includes(id)) {
-      get().toast("Already turned that stop.");
-      return;
-    }
-    const caps = shopCaps(s.shopTier, s.slingShelves);
-    const slings = s.colony.filter((c) => c.stage === "sling" && !c.personal).length;
-    const find = forageRoll(s.profit, s.serial, s.day, stop.biome);
-    const searched = [...s.fieldSearched, id];
-    if (!find) {
-      set({ fieldSearched: searched });
-      get().toast(`${stop.label}: empty.`);
-      persist({ ...get() });
-      return;
-    }
-    if (slings >= caps.sling) {
-      set({ fieldSearched: searched });
-      get().toast("Sling racks are full. Leave it.");
-      persist({ ...get() });
-      return;
-    }
-    set({
-      fieldSearched: searched,
-      colony: [...s.colony, find],
-      serial: s.serial + 1,
-    });
-    get().toast(`Wild sling · ${forageLabel(find.speciesId)}. Rack it until it molts.`);
-    persist({ ...get() });
-  },
-
   leaveField: () => {
     set({ view: "world" });
     get().toast("Back at the shop.");
@@ -1769,6 +1637,13 @@ export const useGame = create<GameState>((set, get) => ({
       });
     }
     const nextDay = s.day + 1;
+    const stock = colony.filter((c) => !c.personal);
+    const allCared =
+      stock.length > 0 &&
+      stock.every((c) => {
+        const spec = spiderById(c.speciesId);
+        return spec ? careDue(c, spec, s.day).length === 0 : true;
+      });
     const capsNow = shopCaps(s.shopTier, s.slingShelves);
     let serial = s.serial;
     const stillIn: WholesaleTicket[] = [];
@@ -1804,15 +1679,7 @@ export const useGame = create<GameState>((set, get) => ({
       });
       if (n < t.qty) stillIn.push({ ...t, qty: t.qty - n, arriveDay: nextDay + 1 });
     }
-    const ended = cash <= -40 ? ("evicted" as const) : null;
     const orderN = s.shopTier === 0 ? 1 : 2;
-    const stock = s.colony.filter((c) => !c.personal);
-    const allCared =
-      stock.length > 0 &&
-      stock.every((c) => {
-        const spec = spiderById(c.speciesId);
-        return spec ? careDue(c, spec, s.day).length === 0 : true;
-      });
     const stats = {
       ...s.stats,
       cleanNights: s.stats.cleanNights + (allCared && !lost.length ? 1 : 0),
@@ -1836,30 +1703,25 @@ export const useGame = create<GameState>((set, get) => ({
       journal: [...notes, ...s.journal].slice(0, 40),
       stats,
       dealsToday: 0,
-      fieldSearched: [],
       trailDraws: 0,
       trailDeck: shuffleDeck(),
       trailLastCard: null,
       trailPending: null,
       trailFind: null,
       openedBy: null,
-      ended,
       hour: 0,
       view: "world",
       coachBeat: nextCoach(s.coachBeat, 3),
       neighborHelped,
-      reveals: ended ? [] : orderReveals(cards),
-      morning: ended
-        ? null
-        : {
-            day: nextDay,
-            rent: rentPaid,
-            cash,
-            late: 0,
-          },
+      reveals: orderReveals(cards),
+      morning: {
+        day: nextDay,
+        rent: rentPaid,
+        cash,
+        late: lateJars.length,
+      },
     });
-    if (ended) get().toast("Locks changed.");
-    else if (lost.length) get().toast(`${lost.length} didn't make the night.`);
+    if (lost.length) get().toast(`${lost.length} didn't make the night.`);
     else if (!cards.length) get().toast(`Day ${nextDay}.`);
     persist({ ...get() });
   },

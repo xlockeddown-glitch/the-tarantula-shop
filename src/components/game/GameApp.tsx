@@ -23,15 +23,12 @@ import { rollStarterPacks } from "@/lib/game/packs";
 import { careDue } from "@/lib/game/care";
 import { bookLine } from "@/lib/game/returns";
 import {
-  BAY_UNITS,
   expandCost,
   loftUpgrade,
   missingUpgrade,
   nextUnlock,
   shopCaps,
   SLING_SHELF,
-  usedWall,
-  wallUnits,
   windowSlots,
 } from "@/lib/game/progress";
 import {
@@ -49,37 +46,39 @@ import {
   lotPayout,
   lotSellable,
   lotUnit,
+  saveKeyForUser,
   useGame,
   wholesaleQuote,
   wholesaleToday,
   type GameView,
 } from "@/lib/game/store";
+import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { GAME_VERSION } from "@/lib/game/version";
 import { cn } from "@/lib/utils";
 
 export function GameApp() {
+  const user = useCurrentUser();
   const hydrate = useGame((s) => s.hydrate);
   const started = useGame((s) => s.started);
   const packChosen = useGame((s) => s.packChosen);
-  const ended = useGame((s) => s.ended);
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+    hydrate(user?.id ?? null);
+  }, [hydrate, user?.id]);
   if (!started) return <TitleScreen />;
-  if (ended) return <EvictedScreen />;
   if (!packChosen) return <PackScreen />;
   return <Tabletop />;
 }
 
 function TitleScreen() {
+  const user = useCurrentUser();
   const startNew = useGame((s) => s.startNew);
   const hydrate = useGame((s) => s.hydrate);
   const [shop, setShop] = useState("The Tarantula Shop");
   const [keeper, setKeeper] = useState("");
   const [hasSave, setHasSave] = useState(false);
   useEffect(() => {
-    setHasSave(!!localStorage.getItem("spinneret-save-v5"));
-  }, []);
+    setHasSave(!!localStorage.getItem(saveKeyForUser(user?.id ?? null)));
+  }, [user?.id]);
   const peek = [
     "/game/felt-gbb-example.webp",
     "/game/felt-curly-example.webp",
@@ -147,7 +146,7 @@ function TitleScreen() {
                 variant="secondary"
                 className="rounded-full"
                 onClick={() => {
-                  hydrate();
+                  hydrate(user?.id ?? null);
                   const s = useGame.getState();
                   if (s.started) useGame.setState({ view: "world" });
                 }}
@@ -161,23 +160,6 @@ function TitleScreen() {
       <p className="pointer-events-none absolute bottom-4 left-5 font-mono text-[10px] tracking-[0.22em] text-[#d8dce0]/90">
         v{GAME_VERSION}
       </p>
-    </main>
-  );
-}
-
-function EvictedScreen() {
-  const reset = useGame((s) => s.reset);
-  const day = useGame((s) => s.day);
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-[#7a8480] px-6 text-center">
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#6a6560]">Day {day}</p>
-      <h1 className="font-display mt-3 text-4xl">Locks changed</h1>
-      <p className="mt-3 max-w-md text-[#5a5652]">
-        Till's empty and the locks changed. Start another table when you're ready.
-      </p>
-      <Button className="mt-8 rounded-full" onClick={reset}>
-        Start another table
-      </Button>
     </main>
   );
 }
@@ -279,7 +261,6 @@ function Tabletop() {
                   Felt table
                 </Button>
               </div>
-              {view === "shop" && <ShopView />}
               {view === "loft" && <LoftView />}
               {view === "wholesale" && <WholesaleView />}
               {view === "notes" && <NotesView />}
@@ -542,28 +523,6 @@ function Nav() {
   );
 }
 
-function ShopView() {
-  const shopMode = useGame((s) => s.shopMode);
-  const openedDay = useGame((s) => s.openedDay ?? 0);
-  const day = useGame((s) => s.day);
-  const customers = useGame((s) => s.customers);
-  const openShop = useGame((s) => s.openShop);
-  return (
-    <div className="space-y-3">
-      <h2 className="font-display text-2xl">Front of house</h2>
-      {shopMode === "open" ? (
-        <p>{customers.length} at the table.</p>
-      ) : openedDay === day ? (
-        <p className="text-sm text-[#6a6560]">Closed for the day. Sleep to open tomorrow.</p>
-      ) : (
-        <Button className="rounded-full" onClick={openShop}>
-          Open shop
-        </Button>
-      )}
-    </div>
-  );
-}
-
 function LoftView() {
   const colony = useGame((s) => s.colony);
   const careAll = useGame((s) => s.careAll);
@@ -577,10 +536,6 @@ function LoftView() {
   const cash = useGame((s) => s.cash);
   const stats = useGame((s) => s.stats);
   const shelves = useGame((s) => s.slingShelves);
-  const wall = useGame((s) => s.wall) ?? [];
-  const addBay = useGame((s) => s.addBay);
-  const removeBay = useGame((s) => s.removeBay);
-  const cycleBay = useGame((s) => s.cycleBay);
   const buySlingShelf = useGame((s) => s.buySlingShelf);
   const listSpider = useGame((s) => s.listSpider);
   const tend = useGame((s) => s.tend);
@@ -702,43 +657,12 @@ function LoftView() {
             );
           })}
       </div>
-      <p className="text-xs text-[#6a6560]">
-        Bay wall {usedWall(wall)}/{wallUnits(shopTier)} · adult bay costs {BAY_UNITS.adult} · next
-        glass {expandCost(shopTier)}
-      </p>
-      <div className="flex gap-2">
-        <Button size="sm" variant="ghost" className="rounded-full" onClick={() => addBay("sling")}>
-          Add sling bay
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="rounded-full"
-          onClick={() => addBay("juvenile")}
-        >
-          Add juv bay
-        </Button>
-        {wall[0] ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="rounded-full"
-            onClick={() => cycleBay(wall[0]!.id)}
-          >
-            Cycle bay
-          </Button>
-        ) : null}
-        {wall[1] ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="rounded-full"
-            onClick={() => removeBay(wall[1]!.id)}
-          >
-            Remove bay
-          </Button>
-        ) : null}
-      </div>
+      {plan ? (
+        <p className="text-xs text-[#6a6560]">
+          Next upgrade: {plan.label} ({expandCost(shopTier)} chips)
+          {miss.length ? ` · needs ${miss.join(", ")}` : " · ready"}
+        </p>
+      ) : null}
     </div>
   );
 }

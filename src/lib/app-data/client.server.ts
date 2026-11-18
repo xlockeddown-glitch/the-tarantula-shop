@@ -177,6 +177,8 @@ function missingAuthResult(ctx: InboundContext): CallToolResult {
 }
 
 function crossSiteBlockedResult(): CallToolResult | null {
+  const req = tryGetRequest();
+  if (!req) return null;
   try {
     assertSameSiteRequest();
     return null;
@@ -184,7 +186,11 @@ function crossSiteBlockedResult(): CallToolResult | null {
     if (e instanceof CrossSiteRequestError) {
       return { ok: false, data: null, errorMessage: e.message };
     }
-    return null;
+    return {
+      ok: false,
+      data: null,
+      errorMessage: e instanceof Error ? e.message : "request blocked",
+    };
   }
 }
 
@@ -192,13 +198,28 @@ const FAILURE_MEMO_TTL_MS = 5_000;
 const failureMemo = new Map<string, { at: number; result: CallToolResult }>();
 
 function tokenIdentityKey(token: string): string {
-  const payload = token.split(".")[1];
-  if (payload) {
+  const parts = token.split(".");
+  const [header, payload, signature] = parts;
+  if (parts.length === 3 && header && payload && signature) {
     try {
+      const head: unknown = JSON.parse(
+        Buffer.from(header, "base64url").toString("utf8"),
+      );
+      const alg =
+        head && typeof head === "object" && !Array.isArray(head)
+          ? (head as { alg?: unknown }).alg
+          : undefined;
       const claims: unknown = JSON.parse(
         Buffer.from(payload, "base64url").toString("utf8"),
       );
-      if (claims && typeof claims === "object" && !Array.isArray(claims)) {
+      if (
+        typeof alg === "string" &&
+        alg &&
+        alg.toLowerCase() !== "none" &&
+        claims &&
+        typeof claims === "object" &&
+        !Array.isArray(claims)
+      ) {
         const { sub, team_id: teamId } = claims as {
           sub?: unknown;
           team_id?: unknown;

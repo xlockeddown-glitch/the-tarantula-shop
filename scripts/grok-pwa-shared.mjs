@@ -260,6 +260,7 @@ export function readOgSite(cwd = process.cwd()) {
 
 /** Public path of an on-disk share card, or "" if neither file exists. */
 export function ogCardPublicPath(cwd = process.cwd()) {
+  if (!cwd) return "";
   if (existsSync(join(cwd, "public/og.jpg"))) return "/og.jpg";
   if (existsSync(join(cwd, "public/og.png"))) return "/og.png";
   return "";
@@ -414,15 +415,19 @@ function insertBeforeHeadClose(html, snippet) {
 }
 
 export function normalizeHeadContext(ctx = {}) {
-  const cwd = ctx.cwd ?? process.cwd();
-  // Middleware passes a baked `site`. Still consult the workspace so a
-  // public/og.jpg generated after that snapshot (or missed by a wrong cwd)
-  // wins over the og.grok.me placeholder. Vercel has no public/ to read, so
-  // a correct bake is unchanged.
-  const site = applyCustomCardFromFs(
-    ctx.site !== undefined ? ctx.site : snapshotOgIdentity(cwd).site,
-    cwd,
-  );
+  const cwd = ctx.cwd ?? "";
+  // Middleware passes a baked `site`. Still consult the workspace when an
+  // explicit `cwd` is given so a public/og.jpg generated after that snapshot
+  // wins over the og.grok.me placeholder, without leaking the local repo's
+  // site.json/og.jpg into calls that omit `cwd`. Vercel has no public/ to
+  // read, so a correct bake is unchanged.
+  const baseSite =
+    ctx.site !== undefined
+      ? ctx.site
+      : cwd
+        ? snapshotOgIdentity(cwd).site
+        : {};
+  const site = cwd ? applyCustomCardFromFs(baseSite, cwd) : baseSite;
   const appName = resolveOgTitle(site, ctx.appName ?? DEFAULT_APP_NAME, ctx.host ?? "");
   return {
     appName,

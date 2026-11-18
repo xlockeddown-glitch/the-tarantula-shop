@@ -145,10 +145,6 @@ export function assessBuild(spec: SpiderSpecies, stage: SpiderStage, b: BuildDra
   return { score, misses: [...essentials, ...hints] };
 }
 
-export function scoreBuild(spec: SpiderSpecies, stage: SpiderStage, b: Omit<EnclosureBuild, "score">): number {
-  return assessBuild(spec, stage, b).score;
-}
-
 export function buildCost(b: Omit<EnclosureBuild, "score">) {
   return (
     (VESSEL_OPTS.find((x) => x.id === b.vessel)?.cost ?? 0) +

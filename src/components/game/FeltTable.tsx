@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Eye } from "lucide-react";
 import { portraitFor, feltCardArt } from "@/lib/game/look";
+import { restLeft } from "@/lib/game/breed";
 import { careDue } from "@/lib/game/care";
 import { passScore } from "@/lib/game/enclosure";
 import {
@@ -699,19 +700,21 @@ export function FeltTable() {
   const listedSpiders = colony.filter((c) => c.listed && !c.personal);
   const rack = colony.filter((c) => !c.personal && !c.listed && !c.inBreed);
   const females = colony.filter(
-    (c) => c.stage === "adult" && c.sex === "f" && !c.personal && !c.inBreed,
+    (c) => c.stage === "adult" && c.sex === "f" && !c.personal && !c.inBreed && !c.listed,
   );
   const pairs = females
     .map((female) => {
-      const male = colony.find(
+      const males = colony.filter(
         (c) =>
           c.stage === "adult" &&
           c.sex === "m" &&
           !c.personal &&
           !c.inBreed &&
+          !c.listed &&
           c.speciesId === female.speciesId,
       );
-      const rest = Math.max(0, (female.breedRestUntil ?? 0) - day);
+      const male = males.find((m) => restLeft(m, day) === 0) ?? males[0];
+      const rest = Math.max(restLeft(female, day), male ? restLeft(male, day) : 0);
       return { female, male, rest };
     })
     .filter((p) => p.male);
@@ -962,7 +965,7 @@ export function FeltTable() {
                 >
                   {pairs.map((p, i) => (
                     <option key={p.female.id} value={i}>
-                      {spiderById(p.female.speciesId)?.common}
+                      {spiderById(p.female.speciesId)?.common} ({p.female.tag})
                     </option>
                   ))}
                 </select>

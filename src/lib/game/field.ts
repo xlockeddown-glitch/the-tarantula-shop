@@ -124,17 +124,6 @@ export function spaceLabel(space: PathSpace) {
   return space.biome;
 }
 
-/** @deprecated old 8-stop trail — landmarks still used as names */
-export const TRAIL = PATH.filter((s) => s.landmark).map((s) => ({
-  id: s.id,
-  label: s.landmark ?? s.id,
-  biome: s.biome,
-  art: BIOME_ART[s.biome],
-}));
-
-export const FIELD_SPOTS = TRAIL.slice(0, 3).map((s) => ({ id: s.id, label: s.label, x: 0, z: 0 }));
-export const FLIPS_PER_DAY = DRAWS_PER_DAY;
-
 const BIOME_POOL: Record<Biome, string[]> = {
   dry: [
     "tliltocatl-albopilosus",

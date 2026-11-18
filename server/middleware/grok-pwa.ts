@@ -31,9 +31,9 @@ interface GrokPwaEvent {
 }
 
 function requestHost(event: GrokPwaEvent): string {
-  return (
-    event.req.headers.get("x-forwarded-host") ?? event.req.headers.get("host") ?? event.url.host
-  );
+  const raw =
+    event.req.headers.get("x-forwarded-host") ?? event.req.headers.get("host") ?? event.url.host;
+  return raw.split(",")[0]?.trim() || event.url.host;
 }
 
 function injectHeadStreaming(response: Response, host: string): Response {
@@ -75,6 +75,7 @@ export default async function grokPwaMiddleware(
       headers: {
         "content-type": "application/manifest+json; charset=utf-8",
         "cache-control": "no-cache",
+        vary: "X-Forwarded-Host, Host",
       },
     });
   }
@@ -92,6 +93,7 @@ export default async function grokPwaMiddleware(
       headers: {
         "content-type": "text/html; charset=utf-8",
         "cache-control": "no-cache",
+        vary: "X-Forwarded-Host, Host",
       },
     });
   }
