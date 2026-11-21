@@ -1,6 +1,6 @@
 {
   "name": "the-tarantula-shop",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -17,7 +17,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/game/haggle.test.ts src/lib/game/tankSim.test.ts src/lib/game/requests.test.ts src/lib/game/goals.test.ts src/lib/game/pet.test.ts src/lib/game/enclosure.test.ts src/lib/game/reveal.test.ts",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/game/haggle.test.ts src/lib/game/tankSim.test.ts src/lib/game/requests.test.ts src/lib/game/goals.test.ts src/lib/game/pet.test.ts src/lib/game/enclosure.test.ts src/lib/game/reveal.test.ts src/lib/game/trend.test.ts",
     "test:fast": "node --experimental-strip-types --test src/lib/game/*.test.ts",
     "check:local": "npm run typecheck && node scripts/with-app-env.mjs vite build && npm run test:fast",
     "lint": "eslint .",

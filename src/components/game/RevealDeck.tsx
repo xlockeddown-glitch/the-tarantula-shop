@@ -6,6 +6,7 @@ import { hashSeedText } from "@/lib/game/tankSim";
 import type { RevealCard } from "@/lib/game/reveal";
 import { spiderById, STAGE_LABEL } from "@/lib/game/spiders";
 import { useGame } from "@/lib/game/store";
+import { dailyTrend } from "@/lib/game/trend";
 
 /** Cards that are worth a tap to flip. Everything else deals face-up. */
 function wantsFlip(card: RevealCard) {
@@ -445,6 +446,12 @@ export function RevealDeck() {
               ? null
               : `${morning!.rent ? `Rent −${morning!.rent}` : morning!.day <= 3 ? "No rent yet" : "Rent waived"} · `}
             {morning!.cash} chips in the till
+          </p>
+        ) : null}
+        {isMorning && seen === 0 ? (
+          <p className="mx-auto mt-2 max-w-sm text-sm text-[#efe6d8]">
+            <span className="font-display">{dailyTrend(morning!.day).title}.</span>{" "}
+            <span className="text-[#d8dce0]/90">{dailyTrend(morning!.day).line}</span>
           </p>
         ) : null}
       </div>

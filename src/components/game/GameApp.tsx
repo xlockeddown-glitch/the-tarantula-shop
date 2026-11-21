@@ -55,6 +55,7 @@ import {
   type GameView,
 } from "@/lib/game/store";
 import { GAME_VERSION } from "@/lib/game/version";
+import { dailyTrend } from "@/lib/game/trend";
 import { cn } from "@/lib/utils";
 
 export function GameApp() {
@@ -385,6 +386,9 @@ function HUD() {
               Day {day} · {open ? "open" : opened ? "closed" : "morning"}
               {sheHasTill ? " · Elizabeth has the till" : ""} · feed {feeders} · stock{" "}
               {shopSpiders(colony).length}
+            </p>
+            <p className="mt-0.5 truncate text-[11px] text-[#efe6d8]/90" title={dailyTrend(day).line}>
+              Today: {dailyTrend(day).title}
             </p>
           </button>
           <span
