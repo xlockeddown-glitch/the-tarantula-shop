@@ -14,6 +14,7 @@ import { forageRoll, forageLabel, hopPawn, shuffleDeck, DRAWS_PER_DAY, PATH, spa
 import { isDone, isLapsed, pickGoal, type Goal, type GoalKind, type GoalSnapshot } from "./goals";
 import { askLadder, budgetMultFor, judgeAsk, personaFor } from "./haggle";
 import { packToColony, type StarterPack } from "./packs";
+import { dailyTrend, tiltWalkIns, trendPool } from "./trend";
 import { crossedUnlocks, orderReveals, type DayLedger, type MorningSlip, type RevealCard } from "./reveal";
 import {
   BAY_UNITS,
@@ -143,11 +144,10 @@ function buildDayLine(s: GameState): { customers: ShopCustomer[]; returning: Ret
   const featured = (s.displayPins ?? []).map((p) => p.speciesId).filter(Boolean);
   const signWant = featured.find((id) => spiderById(id));
   const askable = askableIds(s.profit);
-  const extra = rollCustomers(
-    s.day,
-    6,
-    SPIDER_SPECIES.filter((sp) => askable.has(sp.id)),
-  )
+  const askPool = SPIDER_SPECIES.filter((sp) => askable.has(sp.id));
+  // Daily trend: half the fresh walk-ins lean toward today's headline.
+  const tPool = trendPool(dailyTrend(s.day).id, askPool);
+  const extra = tiltWalkIns(rollCustomers(s.day, 6, askPool), rollCustomers(s.day, 6, tPool))
     .filter((c) => !used.has(c.want))
     .slice(0, Math.max(0, n - fromWindow.length - back.length));
   let customers = [...fromWindow, ...back, ...extra].slice(0, n);
